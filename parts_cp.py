@@ -563,10 +563,11 @@ class datasets_general_3D_alllead(Dataset):
         # return (self.tr_x[idx] - np.mean(self.tr_x[idx])) / np.std(self.tr_x[idx]), self.tr_y[idx], self.tr_y_c[idx]
         
 class dataset_times(Dataset):
-    def __init__(self, SSTFile, SSTFile_label, lead, sstName, hcName, labelName, noise = False):
+    def __init__(self, SSTFile, SSTFile_label, lead, sstName, hcName, labelName, scalar_time = False):
         sstData =  dp.ReadData(SSTFile)
-        self.times = np.array(sstData['time'])
-        self.endtime = self.times[-1]
+        times = np.array(sstData['time'])
+        self.oh = np.eye(12)
+
         sst = sstData[sstName][:, :, :, :]
         sst = np.expand_dims(sst, axis = 0)
 
@@ -588,7 +589,7 @@ class dataset_times(Dataset):
         self.tr_x = np.array(tr_x)
         self.tr_y = np.array(tr_y[:, :])
         self.tr_y_c = np.array(tr_y_c)
-        self.noise = noise
+        self.st = scalar_time
 
         self.mask = self.tr_x[0]
         self.mask[self.mask!= 0.0] = 1.0
@@ -616,7 +617,10 @@ class dataset_times(Dataset):
             # myNoise = np.random.normal(loc=0, scale=0.1, size=self.tr_x[idx].shape)
             # myNoise = myNoise*self.mask
             # return x+myNoise, self.tr_y[idx, :], self.tr_y_c[idx]
-        return x, self.tr_y[idx, :], self.tr_y_c[idx], np.array(self.times[idx]/self.endtime, dtype=np.float16)
+        if self.st == True:
+            return x, self.tr_y[idx, :], self.tr_y_c[idx], idx % 12
+        else:
+            return x, self.tr_y[idx, :], self.tr_y_c[idx], self.oh[idx % 12]
         # else:
         #     x = self.tr_x[idx]
         #     return x, self.tr_y[idx, :], self.tr_y_c[idx],
@@ -626,8 +630,9 @@ class dataset_times(Dataset):
         # return (self.tr_x[idx] - np.mean(self.tr_x[idx])) / np.std(self.tr_x[idx]), self.tr_y[idx], self.tr_y_c[idx]
 
 if __name__ == '__main__':
-    a = dataset_times('c:/code/ENSO/ENSO_Ham/Dataset/Ham/cmip5_tr.input.1861_2001.nc', 'c:/code/ENSO/ENSO_Ham/Dataset/Ham/cmip5_tr.label.1861_2001.nc', 0, 'sst', 't300', 'pr', True)
+    a = dataset_times('c:/code/ENSO/ENSO_Ham/local/Dataset/Ham/cmip5_tr.input.1861_2001.nc', 'c:/code/ENSO/ENSO_Ham/local/Dataset/Ham/cmip5_tr.label.1861_2001.nc', 0, 'sst', 't300', 'pr', True)
     b = DataLoader(a, batch_size=1, shuffle=False)
     for idx, (x, y, c, t) in enumerate(b):
         times = t
-        time.sleep(5)
+
+        exit()

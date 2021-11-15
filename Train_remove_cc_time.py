@@ -37,9 +37,9 @@ def pearson(pred, gt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
-    parser.add_argument("--endLead", type=int, default=10)
-    parser.add_argument("--gpu", type=str, default='0, 1')
-    parser.add_argument("--input", type=int, default=1)
+    parser.add_argument("--endLead", type=int, default=2)
+    parser.add_argument("--gpu", type=str, default=0)
+    parser.add_argument("--input", type=int, default=4)
     args = parser.parse_args()
 
     GPU_NUM = args.gpu
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     batch_size = 128            # batch size
     ENS_Start = 0               # Starting No.
     ENS = 1                     # No. Ensemble Models
-    numEpoch =  10             # No. Epoch
+    numEpoch =  100             # No. Epoch
     learning_rate = 0.0001       # Initial Learning Rate
     n_cycles = 1                # No. cycles in Cosine Annealing
     epochs_per_cycle = math.floor(numEpoch / n_cycles)  # No. epochs for each cycle
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     leadMax = 24                # No. lead time
 
     # Dataset for pretraining
-    Folder = os.path.abspath(__file__).split('\\')[-1].split('.')[0]
+    Folder = './local/' + os.path.abspath(__file__).split('\\')[-1].split('.')[0]
     pretrainFolder = ""
     dataFolder = 'c:/code/ENSO/ENSO_Ham/local/Dataset' #"./"
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             print('{}/{}'.format(ens, ENS))
 
             model = Model_3D(2, noF, num_layer, num_answer, dr, args.input).to(device)
-            model = nn.DataParallel(model, device_ids=[0,1])
+            # model = nn.DataParallel(model, device_ids=[0,1])
             # print(model)
             optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate, weight_decay=reg, betas=(0.9, 0.999))
             # optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate, weight_decay=reg)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
                     batch = Variable(batch.float().cuda())
                     ansnino = Variable(ansnino.float().cuda())
                     anstype = Variable(anstype.float().cuda())
-                    t = t.unsqueeze(1).float().to(device='cuda')
+                    t = t.float().to(device='cuda')
 
                     # import matplotlib.pyplot as plt
                     # plt.imshow(batch[0, 0, :, :, 0].cpu())
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 print('[{}/{} , {}/{} loss : {}, {}, {}'.format(epoch, numEpoch, (i+1), len(trainloader), losses[0]/len(trainloader), losses[1]/len(trainloader), losses[2]/len(trainloader)))
                 writer.add_scalar('loss/train', sum_train/len(trainloader), epoch)
                 # update_lr(optimizer, lr)
-
+                
                 model.eval()
                 with torch.no_grad() :
                     for i, (batch, ansnino, anstype, t) in enumerate(testloader):
@@ -257,7 +257,9 @@ if __name__ == "__main__":
                 if (sum_test/len(testloader)) < loss_comp : 
                     loss_comp = sum_test/len(testloader)
                     torch.save(model.state_dict(), "{}_{}/train_{}_{}/train_{}_{}.pth".format(Folder, args.input, lead, ens, lead, ens))
+                    print('-'*50)
                     print('[{}/{} , loss_comp : {}'.format(epoch, numEpoch, loss_comp))
+                    print('-'*50)
                     writer.add_scalar('loss/test', sum_test/len(testloader), epoch)
                     writer.flush()
             writer.close()

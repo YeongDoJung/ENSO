@@ -1,3 +1,4 @@
+from datetime import time
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -124,7 +125,7 @@ class Model_3D(nn.Module):
         self.rfb3 = RFB(out_channels*2, out_channels*4)
 
         # Regression
-        encoder_dim = out_channels*4
+        encoder_dim = out_channels*4 + 1
         decoder_dim = num_layer
         attention_dim = num_layer
         
@@ -190,7 +191,7 @@ class Model_3D(nn.Module):
         self.maxpool2d = nn.MaxPool3d(kernel_size = (2, 2, 1), stride=(2, 2, 1))
         # self.maxpool3d = nn.MaxPool3d(kernel_size = (2, 2, 2), stride=(2, 2, 2))
         self.tl = time_Linear()
-
+    
     def forward(self, x, y) :
         # print(x.shape)
         # out = self.conv(x)
@@ -216,9 +217,9 @@ class Model_3D(nn.Module):
         encoder_out = out.view(out.size(0), -1, encoder_dim) #(n, 81, 64)
 
         time_out = self.tl(y)
-        time_out = time_out.unsqueeze(1)
+        time_out = time_out.squeeze().unsqueeze(2)
 
-        encoder_out = torch.cat((encoder_out, time_out), 1)
+        encoder_out = torch.cat((encoder_out, time_out), 2)
 
         num_pixels = encoder_out.size(1) 
         # print(encoder_out.shape)
@@ -226,8 +227,6 @@ class Model_3D(nn.Module):
         mean_encoder_out = encoder_out.mean(dim=1)
         # h = self.init_h(mean_encoder_out[0:1, :])  # (batch_size, decoder_dim)
         # c = self.init_c(mean_encoder_out[0:1, :])
-
-
 
         hs = []
         cs = []
@@ -284,10 +283,8 @@ class time_Linear(nn.Module):
     def __init__(self):
         super().__init__()
         # (n, 1)
-        self.block = nn.Sequential(nn.Linear(1, 8),
-                                    nn.Linear(8, 16),
-                                    nn.Linear(16, 32),
-                                    nn.Linear(32, 64))
+        self.block = nn.Sequential(nn.Linear(12, 81),
+                                    nn.ReLU())
 
     def forward(self, x):
         return self.block(x)

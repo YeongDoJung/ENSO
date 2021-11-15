@@ -125,7 +125,7 @@ class Model_3D(nn.Module):
         self.rfb3 = RFB(out_channels*2, out_channels*4)
 
         # Regression
-        encoder_dim = out_channels*4
+        encoder_dim = out_channels*4 + 1
         decoder_dim = num_layer
         attention_dim = num_layer
         
@@ -190,8 +190,7 @@ class Model_3D(nn.Module):
 
         self.maxpool2d = nn.MaxPool3d(kernel_size = (2, 2, 1), stride=(2, 2, 1))
         # self.maxpool3d = nn.MaxPool3d(kernel_size = (2, 2, 2), stride=(2, 2, 2))
-        self.tv = t2v.Model('sin', 32)
-        self.tvl = nn.Linear(32, 64)
+        self.tv = t2v.Model('sin', 1, 32)
 
     def forward(self, x, y) :
         # print(x.shape)
@@ -216,12 +215,9 @@ class Model_3D(nn.Module):
         encoder_dim = out.size(-1) #64
         batch_size = out.size(0)
         encoder_out = out.view(out.size(0), -1, encoder_dim) #(n, 81, 64)
+        time_out = self.tv(y.squeeze()).view(batch_size, -1, 1)
 
-        time_out = self.tv(y)
-        time_out = self.tvl(time_out)
-        time_out = time_out.unsqueeze(1)
-
-        encoder_out = torch.cat((encoder_out, time_out), 1)
+        encoder_out = torch.cat((encoder_out, time_out), 2)
 
         num_pixels = encoder_out.size(1) 
         # print(encoder_out.shape)
@@ -284,18 +280,6 @@ class Model_3D(nn.Module):
         for s in size:
             num_features *= s
         return num_features
-
-class time_Linear(nn.Module):
-    def __init__(self):
-        super().__init__()
-        # (n, 1)
-        self.block = nn.Sequential(nn.Linear(1, 8),
-                                    nn.Linear(8, 16),
-                                    nn.Linear(16, 32),
-                                    nn.Linear(32, 64))
-
-    def forward(self, x):
-        return self.block(x)
 
 if __name__ == '__main__':
     net = Model_3D(2,16,256,2,0,3).to(device='cuda')

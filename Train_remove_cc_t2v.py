@@ -15,7 +15,7 @@ import dataprocessing as dp
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from Models_remove_cc_time import Model_3D
+from Models_remove_cc_t2v import Model_3D
 from parts_cp import dataset_times
 import argparse
 
@@ -37,23 +37,23 @@ def pearson(pred, gt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
-    parser.add_argument("--endLead", type=int, default=10)
-    parser.add_argument("--gpu", type=str, default='0, 1')
-    parser.add_argument("--input", type=int, default=1)
+    parser.add_argument("--endLead", type=int, default=2)
+    parser.add_argument("--gpu", type=int, default=1)
+    parser.add_argument("--input", type=int, default=4)
     args = parser.parse_args()
 
     GPU_NUM = args.gpu
-    # device = torch.device('cuda:{}'.format(GPU_NUM) if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:{}'.format(GPU_NUM) if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     torch.cuda.set_device(device) # change allocation of current GPU
     print ('Current cuda device ', torch.cuda.current_device()) # check
 
     # Set a Hyper-parameters
     # regularizer_rate = 0.0    #L2 regularization
-    batch_size = 128            # batch size
+    batch_size = 64            # batch size
     ENS_Start = 0               # Starting No.
     ENS = 1                     # No. Ensemble Models
-    numEpoch =  10             # No. Epoch
+    numEpoch =  100             # No. Epoch
     learning_rate = 0.0001       # Initial Learning Rate
     n_cycles = 1                # No. cycles in Cosine Annealing
     epochs_per_cycle = math.floor(numEpoch / n_cycles)  # No. epochs for each cycle
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     leadMax = 24                # No. lead time
 
     # Dataset for pretraining
-    Folder = os.path.abspath(__file__).split('\\')[-1].split('.')[0]
+    Folder = './local/' + os.path.abspath(__file__).split('\\')[-1].split('.')[0]
     pretrainFolder = ""
     dataFolder = 'c:/code/ENSO/ENSO_Ham/local/Dataset' #"./"
 
@@ -117,8 +117,8 @@ if __name__ == "__main__":
             torch.cuda.manual_seed_all(ens)
 
             # Dataset for training
-            trainset = dataset_times(SSTFile_train, SSTFile_train_label, lead, sstName='sst', hcName='t300', labelName='pr', noise = True)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-            valset = dataset_times(SSTFile_val, SSTFile_val_label, lead, sstName='sst', hcName='t300', labelName='pr', noise = False)
+            trainset = dataset_times(SSTFile_train, SSTFile_train_label, lead, sstName='sst', hcName='t300', labelName='pr', scalar_time = True)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+            valset = dataset_times(SSTFile_val, SSTFile_val_label, lead, sstName='sst', hcName='t300', labelName='pr', scalar_time = True)
 
             eta_max = learning_rate     # Maximum laerning rate for Cosine Annealing
             eta_min = eta_max/100.0      # Minimum learning rate for Cosine Annealing
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             print('{}/{}'.format(ens, ENS))
 
             model = Model_3D(2, noF, num_layer, num_answer, dr, args.input).to(device)
-            model = nn.DataParallel(model, device_ids=[0,1])
+            # model = nn.DataParallel(model, device_ids=[0,1])
             # print(model)
             optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate, weight_decay=reg, betas=(0.9, 0.999))
             # optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate, weight_decay=reg)
@@ -257,7 +257,9 @@ if __name__ == "__main__":
                 if (sum_test/len(testloader)) < loss_comp : 
                     loss_comp = sum_test/len(testloader)
                     torch.save(model.state_dict(), "{}_{}/train_{}_{}/train_{}_{}.pth".format(Folder, args.input, lead, ens, lead, ens))
+                    print('-'*50)
                     print('[{}/{} , loss_comp : {}'.format(epoch, numEpoch, loss_comp))
+                    print('-'*50)
                     writer.add_scalar('loss/test', sum_test/len(testloader), epoch)
                     writer.flush()
             writer.close()
