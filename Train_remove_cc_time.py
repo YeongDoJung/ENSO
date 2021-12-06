@@ -117,8 +117,8 @@ if __name__ == "__main__":
             torch.cuda.manual_seed_all(ens)
 
             # Dataset for training
-            trainset = dataset_times(SSTFile_train, SSTFile_train_label, lead, sstName='sst', hcName='t300', labelName='pr', noise = True)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-            valset = dataset_times(SSTFile_val, SSTFile_val_label, lead, sstName='sst', hcName='t300', labelName='pr', noise = False)
+            trainset = dataset_times(SSTFile_train, SSTFile_train_label, lead, sstName='sst', hcName='t300', labelName='pr', scalar_time= False)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+            valset = dataset_times(SSTFile_val, SSTFile_val_label, lead, sstName='sst', hcName='t300', labelName='pr', scalar_time= False)
 
             eta_max = learning_rate     # Maximum laerning rate for Cosine Annealing
             eta_min = eta_max/100.0      # Minimum learning rate for Cosine Annealing
