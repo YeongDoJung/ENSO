@@ -22,20 +22,6 @@ from lstf.datasets.basicdatasets import basicdataset
 import argparse
 import tqdm
 
-def pearson(pred, gt):
-    allLoss = 0
-    for i in range(pred.shape[0]):
-        score = pred[i, :]
-        target = gt[i, :]
-        vx = score - torch.mean(score)
-        vy = target - torch.mean(target)
-        add = torch.sum((score - target) ** 2) / pred.shape[1]
-        loss = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2))) 
-        allLoss += 1.0 - loss + add*0.5
-    allLoss /= pred.shape[0]
-    return allLoss
-
-
 def train(args, model, optimizer, trainset, valset):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)

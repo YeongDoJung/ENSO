@@ -58,6 +58,21 @@ class PositionalEmbedding(nn.Module):
     def forward(self, x):
         return self.pe[:, :x.size(1)]
 
+class PearsonLoss(nn.Module):
+    def __init__(self):
+        super(PearsonLoss, self).__init__()
+
+    def forward(self, x, y):
+        mx = torch.mean(x, axis=1)
+        my = torch.mean(y, axis=1)
+        xb = x - mx
+        yb = y - my
+        num = torch.sum(xb*yb)
+        div = torch.sqrt(torch.sum(xb**2))*torch.sqrt(torch.sum(yb**2))
+
+        return num / div + 1e-4
+
+
 def pearson(pred, gt):
     allLoss = 0
     for i in range(pred.shape[0]):
