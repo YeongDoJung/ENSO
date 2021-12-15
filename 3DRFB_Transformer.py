@@ -63,8 +63,8 @@ def train(args, model, optimizer, trainset, valset):
     
     for i, (batch, ansnino) in enumerate(trainloader):
         # print(ansnino)
-        batch = torch.tensor(batch, dtype=torch.float32).to(device=device)
-        ansnino = torch.tensor(ansnino, dtype=torch.float32).to(device=device)
+        batch = batch.clone().detach().requires_grad_(True).to(device=device)
+        ansnino = ansnino.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
 
@@ -105,8 +105,8 @@ def train(args, model, optimizer, trainset, valset):
 
     with torch.no_grad() :
         for i, (batch, ansnino) in enumerate(testloader):
-            batch = torch.tensor(batch, dtype=torch.float32).to(device=device)
-            ansnino = torch.tensor(ansnino, dtype=torch.float32).to(device=device)
+            batch = batch.clone().detach().requires_grad_(True).to(device=device)
+            ansnino = ansnino.clone().detach().requires_grad_(True).to(device=device)
 
             idx = batch.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, batch.shape[0], 23))
