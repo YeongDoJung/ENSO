@@ -1,7 +1,6 @@
 import torch 
 import torch.nn as nn
 import numpy as np
-from Parts import *
 # torch.manual_seed(722)
 # torch.backends.cudnn.deterministic = True
 # torch.backends.cudnn.benchmark = False

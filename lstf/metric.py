@@ -1,5 +1,6 @@
 import numpy as np
 import sklearn.metrics
+import torch.nn as nn
 import torch
 
 class AverageMeter(object):
