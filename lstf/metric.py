@@ -35,6 +35,8 @@ def CorrelationSkill(real, pred):
     corrAvg = 0
     for i in range(12):
         corr = np.corrcoef(real[:, i], pred[:, i])[0][1]
+        if np.isnan(corr):
+            corr = 0
         corrAvg += corr
     corrAvg = corrAvg / 12.0
     return corrAvg
@@ -63,25 +65,38 @@ class PearsonLoss(nn.Module):
         super(PearsonLoss, self).__init__()
 
     def forward(self, x, y):
-        mx = torch.mean(x, axis=1)
-        my = torch.mean(y, axis=1)
-        xb = x - mx
-        yb = y - my
-        num = torch.sum(xb*yb)
-        div = torch.sqrt(torch.sum(xb**2))*torch.sqrt(torch.sum(yb**2))
+        tmp = 0
+        for i in range(x.shape[0]):
+            xb = x[i, :] - torch.mean(x[i, :])
+            yb = y[i, :] - torch.mean(y[i, :])
+            num = torch.sum(xb*yb)
+            div = torch.sum(torch.sqrt(xb**2)*torch.sqrt(yb**2)) + 1e-4
+            tmp += 1 - num / div
+        tmp /= x.shape[0]
 
-        return num / div + 1e-4
+        return tmp
 
+def pearson(x, y):
+    tmp = 1e-4
+    for i in range(x.shape[0]):
+        xb = x[i, :] - np.mean(x[i, :])
+        yb = y[i, :] - np.mean(y[i, :])
+        num = np.sum(xb*yb)
+        div = np.sum(np.sqrt(xb**2)*np.sqrt(yb**2))
+        tmp += 1 - num / div
+    tmp /= x.shape[0]
 
-def pearson(pred, gt):
-    allLoss = 0
-    for i in range(pred.shape[0]):
-        score = pred[i, :]
-        target = gt[i, :]
-        vx = score - torch.mean(score)
-        vy = target - torch.mean(target)
-        add = torch.sum((score - target) ** 2) / pred.shape[1]
-        loss = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2))) 
-        allLoss += 1.0 - loss + add*0.5
-    allLoss /= pred.shape[0]
-    return allLoss
+    return tmp
+
+# def pearson(pred, gt):
+#     allLoss = 0
+#     for i in range(pred.shape[0]):
+#         score = pred[i, :]
+#         target = gt[i, :]
+#         vx = score - torch.mean(score)
+#         vy = target - torch.mean(target)
+#         add = torch.sum((score - target) ** 2) / pred.shape[1]
+#         loss = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2))) 
+#         allLoss += 1.0 - loss + add*0.5
+#     allLoss /= pred.shape[0]
+#     return allLoss
