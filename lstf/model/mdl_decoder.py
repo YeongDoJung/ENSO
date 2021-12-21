@@ -19,10 +19,10 @@ class RFB_Transformer(nn.Module):
 
         self.decoder = decoder
 
-        # if decoder == True:
-        #     self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
-        # else :
-        self.transformer = ViT(num_classes = 23, dim = 64, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024)
+        if decoder == True:
+            self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
+        else :
+            self.transformer = ViT(num_classes = 23, dim = 64, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024)
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 
         self.dense_1 = nn.Linear(64, 1)
@@ -62,16 +62,16 @@ class RFB_Transformer(nn.Module):
         # out = rearrange(out, 'b n c -> b c n')
 
         #prediction
-        # if self.decoder == True:
-        #     tgt = torch.zeros_like(out)
+        if self.decoder == True:
+            tgt = torch.zeros_like(out)
 
-        #     out = self.transformer(out, tgt)
-        #     out = self.dense_1(out)
-        #     out = self.relu(out)
-        #     out = out.squeeze(-1)
-        #     out = self.dense_2(out)
-        # else:
-        out = self.transformer(out)
+            out = self.transformer(out, tgt)
+            out = self.dense_1(out)
+            out = self.relu(out)
+            out = out.squeeze(-1)
+            out = self.dense_2(out)
+        else:
+            out = self.transformer(out)
 
         # out = self.act(out)
 

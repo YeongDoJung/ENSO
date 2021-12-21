@@ -12,7 +12,7 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from lstf.model.mdl import RFB_Transformer
+from lstf.model.mdl_decoder import RFB_Transformer
 from lstf.datasets.basicdatasets import basicdataset
 from Parts import *
 import easydict

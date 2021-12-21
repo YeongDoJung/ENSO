@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
-from lstf.model import mdl
+from lstf.model import mdl_decoder
 from lstf import metric
 from lstf.datasets.basicdatasets import basicdataset
 import argparse
@@ -73,13 +73,14 @@ if __name__ == "__main__":
 
 
     
-    model = mdl.RFB_Transformer(in_channels=2, out_channels=16, decoder = args.decoder).to(device=device)
+    model = mdl_decoder.RFB_Transformer(in_channels=2, out_channels=16, decoder = args.decoder).to(device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr = args.lr, weight_decay=reg, betas=(0.9, 0.999))
     scaler = torch.cuda.amp.GradScaler(enabled=True)
 
     torch.cuda.empty_cache()
 
     criterion = nn.MSELoss()
+    _criterion = metric.PearsonLoss()
 
     for epoch in range(args.numEpoch):
         torch.backends.cudnn.deterministic = True
@@ -110,14 +111,22 @@ if __name__ == "__main__":
 
             with torch.cuda.amp.autocast(enabled=True): 
                 output = model(batch)
-                tl = criterion(output, ansnino) + 1e-4
+                l2l = criterion(output, ansnino) + 1e-4
+                if torch.isnan(l2l):
+                    l2l = torch.tensor(0)
+                pl = _criterion(output, ansnino) + 1e-4
+                if torch.isnan(pl):
+                    pl = torch.tensor(0)
+
+                tl = 0.5*l2l + 0.5*pl
+
                 trainloss.update(tl)
                 
             scaler.scale(tl).backward() 
             scaler.step(optimizer) 
             scaler.update()
 
-            trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {trainloss.avg:.4f}-{tl:.4f}')
+            trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {trainloss.avg:.4f}-{l2l:.4f},{pl:.4f}')
 
         trainloader.close()
 
@@ -139,7 +148,14 @@ if __name__ == "__main__":
 
                 for b in range(int(1)):
                     output = model(batch) # inference
-                    vl = criterion(output, ansnino) + 1e-4
+                    l2l = criterion(output, ansnino) + 1e-4
+                    if torch.isnan(l2l):
+                        l2l = 0
+                    pl = _criterion(output, ansnino) + 1e-4
+                    if torch.isnan(pl):
+                        pl = 0
+
+                    vl = 0.5*l2l + 0.5*pl
                     valloss.update(vl)
                     uncertaintyarry_nino[b, :, :] = output.cpu()
 
@@ -147,7 +163,7 @@ if __name__ == "__main__":
 
                 assemble_pred_nino[idx:idx+batch.shape[0], :] += np.mean(uncertaintyarry_nino, axis=0)
                 
-                testloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {valloss.avg:.4f}-{vl:.4f}')
+                testloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {valloss.avg:.4f}-{l2l:.4f},{pl:.4f}')
 
             testloader.close()
             
@@ -158,7 +174,7 @@ if __name__ == "__main__":
             mse = mean_squared_error(assemble_pred_nino, assemble_real_nino)
             # pearsoncorr = metric.pearson(assemble_pred_nino, assemble_real_nino)
             print(f'mean corr = {np.mean(corr)}, mse = {mse}')
-            writer.add_scalar('corrcoef/mse/loss', np.mean(corr), mse, args.current_epoch)
+            writer.add_scalar('corrcoef/mse/loss/epoch', np.mean(corr), mse, valloss.avg, args.current_epoch)
 
         if (valloss.avg) < args.val_min : 
             args.val_min = valloss.avg

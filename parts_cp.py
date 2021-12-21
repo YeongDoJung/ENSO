@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 import dataprocessing as dp
-import h5py
 import random
 import time
 import datetime

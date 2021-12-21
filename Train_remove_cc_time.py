@@ -73,9 +73,9 @@ if __name__ == "__main__":
     leadMax = 24                # No. lead time
 
     # Dataset for pretraining
-    Folder = './local/' + os.path.abspath(__file__).split('\\')[-1].split('.')[0]
+    Folder = './local/temporal/' # + os.path.abspath(__file__).split('\\')[-1].split('.')[0]
     pretrainFolder = ""
-    dataFolder = 'c:/code/ENSO/ENSO_Ham/local/Dataset' #"./"
+    dataFolder = './local/Dataset' #"./"
 
     SSTFile_train = dataFolder+'/Ham/cmip5_tr.input.1861_2001.nc'
     SSTFile_train_label = dataFolder+'/Ham/cmip5_tr.label.1861_2001.nc'
