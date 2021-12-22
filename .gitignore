@@ -3,6 +3,8 @@
 /transformer
 /Dataset
 *.png
+check.py
+eda.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

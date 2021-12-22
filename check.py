@@ -93,16 +93,9 @@ def plotresult(fp, num):
 
             assemble_real_nino[idx:idx+batch_size, :] = ansnino.cpu().numpy()
 
-            assemble_pred_nino[idx:idx+batch_size, :] += np.mean(uncertaintyarry_nino, axis=0)
-
-            del batch
-            del ansnino
-
     mse = mean_squared_error(assemble_pred_nino, assemble_real_nino, multioutput='raw_values')
     print(mse)
 
-    exit()
-    
     corr = np.zeros(23)
     for i in range(23):
         corr[i] = CorrelationSkill(assemble_real_nino[:, i], assemble_pred_nino[:, i])
@@ -121,11 +114,11 @@ def plotresult(fp, num):
 
     print(corr)
 
-    np.savetxt(f'{Folder}/eval_6/correlation.csv',corr,delimiter=",")
+    np.savetxt(f'{Folder}{dd}/correlation.csv',corr,delimiter=",")
 
     # print(assemble_pred_nino)
-    np.save(f"{Folder}/eval_6/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
-    np.save(f"{Folder}/eval_6/lead_assemble_pred_nino", assemble_pred_nino)
+    np.save(f"{Folder}{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
+    np.save(f"{Folder}{dd}/lead_assemble_pred_nino", assemble_pred_nino)
 
 def compare():
     baseline = [0.90375662, 0.89310532, 0.85104236, 0.80583616, 0.74700119, 0.68805024
@@ -191,6 +184,6 @@ def check_last_model():
     print(kk)
 
 if __name__ == '__main__':
-    # plotresult("./local/3DRFB_Transformer_encoders/", '5')
-    compare()
+    plotresult("./local/3DRFB_Transformer_encoders/", '5')
+    # compare()
     # check_last_model()
