@@ -3,6 +3,8 @@ import sklearn.metrics
 import torch.nn as nn
 import torch
 
+from sklearn.metrics import mean_squared_error
+
 class AverageMeter(object):
     """Computes and stores the average and current value.
 
@@ -100,3 +102,11 @@ def pearson(x, y):
 #         allLoss += 1.0 - loss + add*0.5
 #     allLoss /= pred.shape[0]
 #     return allLoss
+
+class mse():
+    def __init__(self) -> None:
+        pass
+
+    def forward(self, pr, gt, multioutput):
+        return mean_squared_error(pr, gt, multioutput=multioutput)
+

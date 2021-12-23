@@ -1,3 +1,4 @@
+from sklearn import metrics
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,8 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
-from lstf.model import mdl
 from lstf import metric
+from lstf import build
 from lstf.datasets.basicdatasets import basicdataset
 import argparse
 import tqdm
@@ -36,7 +37,7 @@ def pearson(pred, gt):
     return allLoss
 
 
-def train(args, model, optimizer, trainset, valset):
+def train(args, model, optimizer, trainset, valset, criterion):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
 
@@ -70,7 +71,7 @@ def train(args, model, optimizer, trainset, valset):
 
         with torch.cuda.amp.autocast(enabled=True): 
             output = model(batch)
-            tl = pearson(output, ansnino) + 1e-4
+            tl = criterion(output, ansnino) + 1e-4
             trainloss.update(tl)
 
             # prednino = np.squeeze(output[0], axis=2)
@@ -113,7 +114,7 @@ def train(args, model, optimizer, trainset, valset):
 
             for b in range(int(1)):
                 output = model(batch) # inference
-                vl = pearson(output, ansnino) + 1e-4
+                vl = criterion(output, ansnino) + 1e-4
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
 
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--numEpoch", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--name", type=str, default='3DRFB_Transformer_2')
+    parser.add_argument("--name", type=str, default='CNN_2D')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -205,8 +206,9 @@ if __name__ == "__main__":
 
 
     
-    model = mdl.RFB_Transformer(in_channels=2, out_channels=16).to(device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr = args.lr, weight_decay=reg, betas=(0.9, 0.999))
+    model = build.Model_2D().to(device=device)
+    optimizer = torch.optim.RMSprop(0.005, 0.9)
+    criterion = metrics.mse()
 
     torch.cuda.empty_cache()
 
@@ -214,7 +216,7 @@ if __name__ == "__main__":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        train(args, model=model, optimizer=optimizer, trainset=trainset, valset=valset)
+        train(args, model=model, optimizer=optimizer, trainset=trainset, valset=valset, criterion=criterion)
         # test(args, model=model, testloader)
 
 
