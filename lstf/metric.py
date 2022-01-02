@@ -1,5 +1,4 @@
 import numpy as np
-import sklearn.metrics
 import torch.nn as nn
 import torch
 
@@ -103,10 +102,13 @@ def pearson(x, y):
 #     allLoss /= pred.shape[0]
 #     return allLoss
 
-class mse():
+class mse(nn.Module):
     def __init__(self) -> None:
-        pass
+        super(mse, self).__init__()
 
-    def forward(self, pr, gt, multioutput):
-        return mean_squared_error(pr, gt, multioutput=multioutput)
+    def custom(self, pr, gt):
+        et = torch.abs(pr, gt)
+
+    def forward(self, pr, gt):
+        return mean_squared_error(pr, gt, multioutput='raw_values')
 

@@ -2,12 +2,14 @@ from sklearn import metrics
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils import data
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import math
 import numpy as np
 import os
+from pathlib import Path
 import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
@@ -18,7 +20,7 @@ import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
 from lstf import metric
-from lstf import build
+from lstf.model import build
 from lstf.datasets.basicdatasets import basicdataset
 import argparse
 import tqdm
@@ -45,7 +47,7 @@ def train(args, model, optimizer, trainset, valset, criterion):
         os.makedirs(f'{Folder}/')
     writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
     
-    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=False), total=len(trainset)//args.batch_size)
+    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True), total=len(trainset)//args.batch_size)
 
     sum_test = 0
     sum_train = 0
@@ -71,7 +73,7 @@ def train(args, model, optimizer, trainset, valset, criterion):
 
         with torch.cuda.amp.autocast(enabled=True): 
             output = model(batch)
-            tl = criterion(output, ansnino) + 1e-4
+            tl = criterion(output, ansnino)
             trainloss.update(tl)
 
             # prednino = np.squeeze(output[0], axis=2)
@@ -114,7 +116,7 @@ def train(args, model, optimizer, trainset, valset, criterion):
 
             for b in range(int(1)):
                 output = model(batch) # inference
-                vl = criterion(output, ansnino) + 1e-4
+                vl = criterion(output, ansnino)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
 
@@ -192,13 +194,14 @@ if __name__ == "__main__":
     leadMax = 24                # No. lead time
 
     # Dataset for pretraining
-    Folder = "./local/" + args.name
-    dataFolder = './local/Dataset' #"./"
+    Folder = Path(str(Path(__file__).parent) + "/local/" + args.name)
+    dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/Ham/') #"./"
 
-    SSTFile_train = dataFolder+'/Ham/cmip5_tr.input.1861_2001.nc'
-    SSTFile_train_label = dataFolder+'/Ham/cmip5_tr.label.1861_2001.nc'
-    SSTFile_val = dataFolder+'/Ham/godas.input.1980_2017.nc'
-    SSTFile_val_label = dataFolder+'/Ham/godas.label.1980_2017.nc'
+
+    SSTFile_train = dataFolder / 'cmip5_tr.input.1861_2001.nc'
+    SSTFile_train_label = dataFolder / 'cmip5_tr.label.1861_2001.nc'
+    SSTFile_val = dataFolder / 'godas.input.1980_2017.nc'
+    SSTFile_val_label = dataFolder / 'godas.label.1980_2017.nc'
 
     # Dataset for training
     trainset = basicdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
@@ -207,9 +210,9 @@ if __name__ == "__main__":
 
     
     model = build.Model_2D().to(device=device)
-    optimizer = torch.optim.RMSprop(0.005, 0.9)
-    criterion = metrics.mse()
-
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
+    criterion = nn.SmoothL1Loss(reduce='mean')
+    
     torch.cuda.empty_cache()
 
     for epoch in range(args.numEpoch):

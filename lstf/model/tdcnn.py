@@ -30,23 +30,17 @@ class Model2D(nn.Module):
         b, c, w, h, z = x.shape
 
         x = self.layer1(x)
-        print(x.shape)
         x = self.layer2(x)
-        print(x.shape)
         x = self.layer3(x)
-        print(x.shape)
         x = rearrange(x, 'b d w h c -> b (d w h c)')
-        print(x.shape)
         x = self.dropout(x)
-        print(x.shape)
         x = self.dense(x)
-        print(x.shape)
 
         return x 
 
 if __name__ == '__main__':
     a = torch.rand([64,2,72,24,3])
-    toy = Model_2D()
+    toy = Model2D()
     out = toy(a)
     print(out)
 
