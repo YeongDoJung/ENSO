@@ -211,11 +211,11 @@ class Model3D(nn.Module):
         out = out.permute(0, 2, 3, 4, 1)
         encoder_dim = out.size(-1)
         batch_size = out.size(0)
-        encoder_out = out.view(out.size(0), -1, encoder_dim)
-        num_pixels = encoder_out.size(1)
+        encoder_out = out.view(out.size(0), -1, encoder_dim) # N, 81, 64
+        num_pixels = encoder_out.size(1) # 81
         # print(encoder_out.shape)
         # inintial h and c
-        mean_encoder_out = encoder_out.mean(dim=1)
+        mean_encoder_out = encoder_out.mean(dim=1) # N, 64
         # h = self.init_h(mean_encoder_out[0:1, :])  # (batch_size, decoder_dim)
         # c = self.init_c(mean_encoder_out[0:1, :])
 

@@ -163,8 +163,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=400)
     parser.add_argument("--numEpoch", type=int, default=700)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='CNN_2D_L2Loss_3')
+    parser.add_argument("--lr", type=float, default=1e-5)
+    parser.add_argument("--name", type=str, default='CNN_2D')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -212,9 +212,8 @@ if __name__ == "__main__":
 
     
     model = build.Model_2D().to(device=device)
-    # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
-    optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss(reduction='mean')
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
+    criterion = nn.SmoothL1Loss(reduction='mean')
 
     corr_list = []
     

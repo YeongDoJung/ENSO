@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ENSO_Ham.lstf.model import mdl, tdcnn, trdcnn
+from lstf.model import mdl, tdcnn, trdcnn
 
 __all__ = ['encoders', 'decoders', 'Model_3D', 'Model_2D']
 

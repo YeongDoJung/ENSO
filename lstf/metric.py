@@ -78,13 +78,18 @@ class PearsonLoss(nn.Module):
         return tmp
 
 def pearson(x, y):
-    tmp = 1e-4
+    ns = 1e-4
+    dv = 0
     for i in range(x.shape[0]):
-        xb = x[i, :] - np.mean(x[i, :])
-        yb = y[i, :] - np.mean(y[i, :])
-        num = np.sum(xb*yb)
-        div = np.sum(np.sqrt(xb**2)*np.sqrt(yb**2))
-        tmp += 1 - num / div
+        xb = x[i] - np.mean(x[i])
+        yb = y[i] - np.mean(y[i])
+        print(xb, yb)
+        num = np.cov(xb, yb)
+        div = np.sum(np.sqrt(xb**2)*np.sqrt(yb**2)) + 1e-4
+        ns += num
+        dv += div
+
+    tmp = 1 - ns / dv
     tmp /= x.shape[0]
 
     return tmp
