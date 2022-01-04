@@ -4,14 +4,8 @@ from typing import Optional, Any, Union, Callable
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from torch.module import Module
-from torch.activation import MultiheadAttention
-from torch.container import ModuleList
+from torch.nn import Module, MultiheadAttention, ModuleList, Dropout, Linear, LayerNorm
 from torch.nn.init import xavier_uniform_
-from torch.dropout import Dropout
-from torch.linear import Linear
-from torch.normalization import LayerNorm
-
 
 class Transformer(Module):
     def __init__(self, d_model: int = 512, nhead: int = 8, num_encoder_layers: int = 6,

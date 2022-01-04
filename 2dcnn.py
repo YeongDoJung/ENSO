@@ -231,9 +231,6 @@ if __name__ == "__main__":
         for idx, i in enumerate(corr_list):
             tmp = str(idx) + ',' + str(i) + '\n'
 
-
-
-
     # for lead in range(args.startLead, args.endLead) :
     #     print('----------------------{}---------------------'.format(lead))
     #     # For updating learning rate
