@@ -213,7 +213,8 @@ if __name__ == "__main__":
     
     model = build.Model_2D().to(device=device)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
-    criterion = nn.SmoothL1Loss(reduction='mean')
+    # criterion = nn.SmoothL1Loss(reduction='mean')
+    criterion = nn.CrossEntropyLoss()
 
     corr_list = []
     

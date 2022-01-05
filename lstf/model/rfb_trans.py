@@ -79,6 +79,8 @@ class RFB_Trf(nn.Module):
 
         out = rearrange(out, 'c b -> b c')
 
+        print(out)
+
         return out
 
 class BasicConv3d(nn.Module):
