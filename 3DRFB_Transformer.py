@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
-from lstf import metric
+from lstf import metric, util
 from lstf.model import build
 from lstf.datasets.basicdatasets import basicdataset
 import argparse
@@ -58,13 +58,15 @@ def train(args, model, optimizer, trainset, valset, criterion):
     
     for i, (batch, ansnino) in enumerate(trainloader):
         # print(ansnino)
+        # tgt_mask = util.make_std_mask(ansnino).to(device=device)
         batch = batch.clone().detach().requires_grad_(True).to(device=device)
         ansnino = ansnino.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast(enabled=True): 
-            output = model(batch)
+            tgt_mask = model.generate_square_subsequent_mask(ansnino.size(-1)).to(device=device)
+            output = model(batch, tgt_mask = tgt_mask)
             tl = criterion(output, ansnino)
             trainloss.update(tl)
 
@@ -96,7 +98,6 @@ def train(args, model, optimizer, trainset, valset, criterion):
 
             for b in range(int(1)):
                 output = model(batch) # inference
-                print(output.shape)
                 vl = criterion(output, ansnino)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=400)
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='rfbtrans_1')
+    parser.add_argument("--name", type=str, default='rfbtrans_2')
 
 
     parser.add_argument("--val_min", type=float, default=9999)

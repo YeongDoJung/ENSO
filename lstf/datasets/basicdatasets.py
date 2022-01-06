@@ -2,6 +2,7 @@ import numpy as np
 import netCDF4 as nc
 from einops import rearrange, reduce
 
+import torch
 import torch.utils.data as D
 
 class basicdataset(D.Dataset):
@@ -31,7 +32,9 @@ class basicdataset(D.Dataset):
         return len(self.tr_x)
 
     def __getitem__(self, idx):
-        return self.tr_x[idx], self.tr_y[idx, :]
+        x = self.tr_x[idx] 
+        y = self.tr_y[idx, :]
+        return x, y
 
 class tdimdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):

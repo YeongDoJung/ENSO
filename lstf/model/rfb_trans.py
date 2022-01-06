@@ -1,4 +1,7 @@
+from typing import Optional
+
 import torch
+from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -35,7 +38,14 @@ class RFB_Trf(nn.Module):
 
         self.dense = nn.Linear(64, 1)
 
-    def forward(self, x) :
+    @staticmethod
+    def generate_square_subsequent_mask(sz: int) -> Tensor:
+        r"""Generate a square mask for the sequence. The masked positions are filled with float('-inf').
+            Unmasked positions are filled with float(0.0).
+        """
+        return torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
+
+    def forward(self, x, tgt_mask: Optional[Tensor] = None) :
         batch_size = x.shape[0]
         #feature extract
         out = self.rfb1(x)
@@ -72,14 +82,12 @@ class RFB_Trf(nn.Module):
 
         tgt = repeat(self.tgt, 'f () c -> f b c', b = batch_size)
 
-        out = self.transformer(out, tgt)
+        out = self.transformer(out, tgt, tgt_mask = tgt_mask)
 
         out = self.dense(out)
         out = torch.squeeze(out)
 
         out = rearrange(out, 'c b -> b c')
-
-        print(out)
 
         return out
 
