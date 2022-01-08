@@ -56,10 +56,10 @@ class tgtdataset(D.Dataset):
         self.tr_y = np.array(tr_y[:, :])
 
     def _batchsize(self):
-        return self.tr_x.shape - 26
+        return self.tr_x.shape
 
     def __len__(self):
-        return len(self.tr_x)
+        return len(self.tr_x) - 26
 
     def __getitem__(self, idx):
         x = self.tr_x[idx:idx+3, :, :, :, 0]

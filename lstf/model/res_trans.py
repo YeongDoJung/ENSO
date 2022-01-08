@@ -64,24 +64,23 @@ class res_transformer(nn.Module):
         """
         return torch.triu(torch.full((sz, sz), float('-inf')), diagonal=1)
 
-    def forward(self, x, tgt : Optional[Tensor] = None, tgt_mask: Optional[Tensor] = None) :
+    def forward(self, x, tgt : Optional[Tensor] = None, src_mask: Optional[Tensor] = None, tgt_mask: Optional[Tensor] = None) :
         batch_size = x.shape[0]
         #feature extract
         x = rearrange(x, 'b t c w h -> (b t) c w h')
-        tgt = rearrange(tgt, 'b t c w h -> (b t) c w h')
-
         out = self.resnet(x)
-        tgt_out = self.resnet(tgt)
-
         out = rearrange(out, '(b_o t) f -> b_o t f', b_o = batch_size, t = 3)
-        tgt_out = rearrange(tgt_out, '(b_o t) f -> b_o t f', b_o = batch_size, t = 23)
+        if tgt is not None :
+            tgt = rearrange(tgt, 'b t c w h -> (b t) c w h')
+            tgt = self.resnet(tgt)
+            tgt = rearrange(tgt, '(b_o t) f -> b_o t f', b_o = batch_size, t = 23)
 
         #Positional Encoding
 
         # pe = repeat(self.PE, '() c f -> b c f', b = batch_size)
         out = self.pe(out)
 
-        out = self.transformer(out, tgt_out, tgt_mask = tgt_mask)
+        out = self.transformer(out, tgt = tgt, tgt_mask = tgt_mask)
 
         out = torch.squeeze(self.dense(out))
 

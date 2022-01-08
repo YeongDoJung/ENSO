@@ -1,3 +1,4 @@
+from numpy.core.numeric import zeros_like
 from sklearn import metrics
 import torch
 import torch.nn as nn
@@ -44,7 +45,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
     
-    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True), total=len(trainset)//args.batch_size)
+    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True, drop_last=True), total=len(trainset)//args.batch_size)
 
     # Training
     model.train()
@@ -83,7 +84,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
 
 def valid(args, model, valset, criterion, writer):
-    testloader = tqdm.tqdm(DataLoader(valset, batch_size=args.batch_size, shuffle=False), total=len(valset)//args.batch_size)
+    testloader = tqdm.tqdm(DataLoader(valset, batch_size=args.batch_size, shuffle=False, drop_last=True), total=len(valset)//args.batch_size)
     valloss = metric.AverageMeter()
     model.eval()
 
@@ -91,16 +92,16 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, _, label) in enumerate(testloader):
+        for i, (src, tgt, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
+            tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
-            src_mask = model.generate_square_subsequent_mask(src)
 
             idx = src.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
 
             for b in range(int(1)):
-                output = model(src, src_mask) # inference
+                output = model(src, tgt) # inference
                 vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=10)
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_trans_1')
@@ -211,7 +212,7 @@ if __name__ == "__main__":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
+        # train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
         valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         # test(args, model=model, testloader)
 
