@@ -26,7 +26,6 @@ class RFB_Trf(nn.Module):
 
         self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
 
-        # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 
         # self.act = nn.Sigmoid()
         self.relu = nn.ReLU()

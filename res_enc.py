@@ -52,18 +52,17 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, tgt, label) in enumerate(trainloader):
+    for i, (src, _, label) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
-        tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
         label = label.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
-            output = model(src, tgt)
+            output = model(src)
             tl = criterion(output, label)
             trainloss.update(tl)
 
@@ -92,17 +91,16 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, tgt, label) in enumerate(testloader):
+        for i, (src, _, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
-            tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
 
             idx = src.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
 
             for b in range(int(1)):
-                output = model(src, tgt) # inference
+                output = model(src) # inference
                 vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
@@ -143,13 +141,11 @@ def valid(args, model, valset, criterion, writer):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
-    parser.add_argument("--startLead", type=int, default=1)
-    parser.add_argument("--endLead", type=int, default=2)
-    parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='res_trans_1')
+    parser.add_argument("--name", type=str, default='res_enc_1')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -196,7 +192,7 @@ if __name__ == "__main__":
 
 
     
-    model = build.res_trf().to(device=device)
+    model = build.res_encs().to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     criterion = nn.MSELoss(reduction='mean')

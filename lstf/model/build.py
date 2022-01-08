@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import tdcnn, mdl, rfb_trans, trdcnn, res_trans
+from . import tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder
 
 def Model_2D():
     return tdcnn.Model2D()
@@ -18,3 +18,6 @@ def Model_3D():
 
 def res_trf():
     return res_trans.res_transformer()
+
+def res_encs():
+    return res_encoder.res_enc()
