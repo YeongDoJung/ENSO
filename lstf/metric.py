@@ -30,16 +30,11 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def CorrelationSkill(real, pred):
-    size = real.shape[0] // 12
-    real = np.reshape(real, (size, 12))
-    pred = np.reshape(pred, (size, 12))
     corrAvg = 0
-    for i in range(12):
-        corr = np.corrcoef(real[:, i], pred[:, i])[0][1]
-        if np.isnan(corr):
-            corr = 0
-        corrAvg += corr
-    corrAvg = corrAvg / 12.0
+    corr = np.corrcoef(real, pred)[0][1]
+    if np.isnan(corr):
+        corr = 0
+    corrAvg += corr
     return corrAvg
 
 class PositionalEmbedding(nn.Module):

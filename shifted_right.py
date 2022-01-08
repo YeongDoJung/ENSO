@@ -40,13 +40,9 @@ def pearson(pred, gt):
     return allLoss
 
 
-def train(args, model, optimizer, trainset, valset, criterion):
+def train(args, model, optimizer, trainset, criterion, writer):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
-
-    if not os.path.exists(f'{Folder}/'):
-        os.makedirs(f'{Folder}/')
-    writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
     
     trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True), total=len(trainset)//args.batch_size)
 
@@ -54,7 +50,6 @@ def train(args, model, optimizer, trainset, valset, criterion):
     model.train()
 
     trainloss = metric.AverageMeter()
-    valloss = metric.AverageMeter()
     
     for i, (src, tgt, label) in enumerate(trainloader):
         # print(label)
@@ -83,23 +78,29 @@ def train(args, model, optimizer, trainset, valset, criterion):
 
     writer.add_scalar('loss/train', trainloss.avg, args.current_epoch)
 
+    trainloss.reset()
+
+
+
+def valid(args, model, valset, criterion, writer):
     testloader = tqdm.tqdm(DataLoader(valset, batch_size=args.batch_size, shuffle=False), total=len(valset)//args.batch_size)
+    valloss = metric.AverageMeter()
     model.eval()
 
     assemble_real_nino = np.zeros((len(valset), 23))
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, tgt, label) in enumerate(testloader):
+        for i, (src, _, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
-            tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
+            src_mask = model.generate_square_subsequent_mask(src)
 
             idx = src.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
 
             for b in range(int(1)):
-                output = model(src, tgt) # inference
+                output = model(src, src_mask) # inference
                 vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
@@ -134,7 +135,6 @@ def train(args, model, optimizer, trainset, valset, criterion):
     writer.close()
 
     args.current_epoch += 1
-    trainloss.reset()
     valloss.reset()
 
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=200)
+    parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_trans_1')
@@ -203,11 +203,16 @@ if __name__ == "__main__":
     
     torch.cuda.empty_cache()
 
+    if not os.path.exists(f'{Folder}/'):
+        os.makedirs(f'{Folder}/')
+    writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
+
     for epoch in range(args.numEpoch):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        train(args, model=model, optimizer=optimizer, trainset=trainset, valset=valset, criterion=criterion)
+        train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
+        valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         # test(args, model=model, testloader)
 
     with open(Folder.joinpath('corr.csv'), 'a') as f:
