@@ -2,10 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from lstf.model import mdl, tdcnn, trdcnn, rfb_trans
-
-__all__ = ['encoders', 'decoders', 'Model_3D', 'Model_2D']
-
+from . import tdcnn, mdl, rfb_trans, trdcnn, res_trans
 
 def Model_2D():
     return tdcnn.Model2D()
@@ -18,3 +15,6 @@ def Transformer(in_channel, out_channel):
 
 def Model_3D():
     return trdcnn.Model3D(2,16,256)
+
+def res_trf():
+    return res_trans.res_transformer()

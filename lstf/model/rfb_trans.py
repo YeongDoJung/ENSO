@@ -150,6 +150,6 @@ class RFB(nn.Module):
 
 if __name__ == "__main__":
     toy = torch.zeros([48,2,72,24,3])
-    model = RFB_Transformer(2, 16)
+    model = RFB_Trf(2, 16)
     out = model(toy)
     print(out.shape)

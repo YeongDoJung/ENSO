@@ -36,6 +36,37 @@ class basicdataset(D.Dataset):
         y = self.tr_y[idx, :]
         return x, y
 
+class tgtdataset(D.Dataset):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
+        sstData =  nc.Dataset(SSTFile)
+        sst = sstData[sstName]
+        sst = np.expand_dims(sst, axis = 0)
+
+        hc = sstData[hcName]
+        hc = np.expand_dims(hc, axis = 0)
+        tr_x = np.append(sst, hc, axis = 0)
+        del sst, hc
+
+        tr_x = rearrange(tr_x, 'c b t h w -> b c w h t') #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
+
+        sstData_label = nc.Dataset(SSTFile_label)
+        tr_y = sstData_label[labelName][:, :, 0, 0]
+
+        self.tr_x = np.array(tr_x)
+        self.tr_y = np.array(tr_y[:, :])
+
+    def _batchsize(self):
+        return self.tr_x.shape - 26
+
+    def __len__(self):
+        return len(self.tr_x)
+
+    def __getitem__(self, idx):
+        x = self.tr_x[idx:idx+3, :, :, :, 0]
+        shifted_right = self.tr_x[idx+3:idx+26, :, :, :, 0] 
+        y = self.tr_y[idx, :]
+        return x, shifted_right, y
+
 class tdimdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
