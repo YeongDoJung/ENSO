@@ -23,4 +23,4 @@ def res_encs():
     return res_encoder.res_enc()
 
 def get_vit():
-    return vit.ViT(image_size=(72,24), patch_size=(12,4), num_classes=1, dim=512, depth=12, heads=12, mlp_dim=2048, channels=2, dim_head=1024)
+    return vit.ViT(image_size=(72,24), patch_size=(12,4), num_classes=23, dim=512, depth=12, heads=12, mlp_dim=2048, channels=2, dim_head=1024)

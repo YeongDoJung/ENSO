@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import sys
 
+
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
@@ -22,7 +23,7 @@ import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
 from lstf import metric, util
-from lstf.datasets.dataset import tgtdataset
+from lstf.datasets.dataset import rddataset
 from lstf.model import build
 import argparse
 import tqdm
@@ -52,11 +53,11 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, tgt, label) in enumerate(trainloader):
+    for i, (src, label) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
-        tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
+        # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
         label = label.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
@@ -92,10 +93,10 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, tgt, label) in enumerate(testloader):
+        for i, (src, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
-            tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
+            # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
 
             idx = src.shape[0]*i
@@ -191,8 +192,8 @@ if __name__ == "__main__":
     SSTFile_val_label = dataFolder / 'godas.label.1980_2017.nc'
 
     # Dataset for training
-    trainset = tgtdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-    valset = tgtdataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+    trainset = rddataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+    valset = rddataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
 
     
