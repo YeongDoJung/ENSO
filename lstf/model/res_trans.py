@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
+from lstf.model.Transbase import Transformer
+
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
@@ -44,7 +46,7 @@ class res_transformer(nn.Module):
         in_feature_num = self.resnet.fc.in_features
         self.resnet.fc = nn.Linear(in_feature_num, d_model)
 
-        self.transformer = nn.Transformer(d_model = d_model, batch_first=True) #embed_dim must be divisible by num_heads
+        self.transformer = Transformer(d_model = d_model, batch_first=True) #embed_dim must be divisible by num_heads
 
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 
@@ -54,7 +56,8 @@ class res_transformer(nn.Module):
         # self.PE = nn.Parameter(torch.rand(1, 3, d_model))
         self.pe = PositionalEncoding(d_model = d_model)
 
-        self.dense = nn.Linear(512, 1)
+        self.dense1 = nn.Linear(512, 128)
+        self.dense2 = nn.Linear(128, 1)
 
 
     @staticmethod
@@ -82,7 +85,7 @@ class res_transformer(nn.Module):
 
         out = self.transformer(out, tgt = tgt, tgt_mask = tgt_mask)
 
-        out = torch.squeeze(self.dense(out))
+        out = torch.squeeze(self.dense2(self.dense1(out)))
 
         return out
 

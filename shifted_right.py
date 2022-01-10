@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='res_trans_1')
+    parser.add_argument("--name", type=str, default='res_trans_3')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -206,8 +206,8 @@ if __name__ == "__main__":
     torch.cuda.empty_cache()
 
     if not os.path.exists(f'{Folder}/'):
-        os.makedirs(f'{Folder}/')
-    writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
+        os.makedirs(f'{Folder}/tensorboard/')
+    writer = SummaryWriter(f'{Folder}/tensorboard/')
 
     for epoch in range(args.numEpoch):
         torch.backends.cudnn.deterministic = True

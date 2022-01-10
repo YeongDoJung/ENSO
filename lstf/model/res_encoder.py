@@ -37,7 +37,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class res_enc(nn.Module):
-    def __init__(self, in_channels = 2, d_model =  512, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024):
+    def __init__(self, in_channels = 2, d_model =  1024, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024):
         super(res_enc, self).__init__()
 
         self.resnet = models.resnet152(pretrained=False)
@@ -46,7 +46,7 @@ class res_enc(nn.Module):
         self.resnet.fc = nn.Linear(in_feature_num, d_model)
 
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
-        self.vit = vit.ViT(num_classes=128, dim=512, depth = 6, heads = 32, mlp_dim = 1024)
+        self.vit = vit.ViT(num_classes=128, dim=d_model, depth = 24, heads = 32, mlp_dim = 1024)
 
         # self.act = nn.Sigmoid()
         self.relu = nn.ReLU()

@@ -63,8 +63,8 @@ class tgtdataset(D.Dataset):
 
     def __getitem__(self, idx):
         x = self.tr_x[idx:idx+3, :, :, :, 0]
-        shifted_right = self.tr_x[idx+3:idx+26, :, :, :, 0] 
-        y = self.tr_y[idx, :]
+        shifted_right = self.tr_x[idx+1:idx+24, :, :, :, 0] 
+        y = np.squeeze(self.tr_y[idx, :])
         return x, shifted_right, y
 
 class tdimdataset(D.Dataset):

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-from coder import *
+from lstf.model.Transbase import *
 
 import sys
 
