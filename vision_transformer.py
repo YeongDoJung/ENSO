@@ -23,7 +23,7 @@ import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
 from lstf import metric, util
-from lstf.datasets.dataset import rddataset
+from lstf.datasets.dataset import rddataset, tdimdataset
 from lstf.model import build
 import argparse
 import tqdm
@@ -140,17 +140,26 @@ def valid(args, model, valset, criterion, writer):
     args.current_epoch += 1
     valloss.reset()
 
-
+class crit(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.crt1=nn.MSELoss()
+        self.crt2=metric.PearsonLoss_old()
+    def forward(self,x,y):
+        l1 = self.crt1(x,y)
+        l2 = self.crt2(x,y)
+        ll = 0.5*l1 + 0.5*l2
+        return ll
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
-    parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--numEpoch", type=int, default=700)
+    parser.add_argument("--gpu", type=int, default=2)
+    parser.add_argument("--batch_size", type=int, default=200)
+    parser.add_argument("--numEpoch", type=int, default=300)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='res_trans_3')
+    parser.add_argument("--name", type=str, default='vit_6channel_corrloss')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -192,15 +201,18 @@ if __name__ == "__main__":
     SSTFile_val_label = dataFolder / 'godas.label.1980_2017.nc'
 
     # Dataset for training
-    trainset = rddataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-    valset = rddataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+    trainset = tdimdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+    valset = tdimdataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
 
     
-    model = build.get_vit().to(device=device)
+    model = build.get_vit(channels=6).to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss(reduction='mean')
+    # criterion = nn.MSELoss(reduction='mean')
+    # criterion = crit()
+    criterion = metric.PearsonLoss_old()
+
 
     corr_list = []
     

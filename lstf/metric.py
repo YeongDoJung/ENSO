@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import torch.nn as nn
 import torch
@@ -56,21 +58,43 @@ class PositionalEmbedding(nn.Module):
     def forward(self, x):
         return self.pe[:, :x.size(1)]
 
-class PearsonLoss(nn.Module):
+class PearsonLoss_old(nn.Module):
     def __init__(self):
-        super(PearsonLoss, self).__init__()
+        super(PearsonLoss_old, self).__init__()
 
     def forward(self, x, y):
+        b = x.size(0)
         tmp = 0
-        for i in range(x.shape[0]):
+        tt = 0
+        for i in range(b):
             xb = x[i, :] - torch.mean(x[i, :])
             yb = y[i, :] - torch.mean(y[i, :])
             num = torch.sum(xb*yb)
-            div = torch.sum(torch.sqrt(xb**2)*torch.sqrt(yb**2)) + 1e-4
-            tmp += 1 - num / div
-        tmp /= x.shape[0]
+            div = torch.sum(torch.sqrt((xb**2)*(yb**2))) + 1e-4
+            tt = (1 - num / div)
+            if torch.isnan(tt):
+                stdout(str(num) + ',' + str(div))
+                tt = 0
+            tmp += tt
+        tmp /= b
 
         return tmp
+
+class corrcoefloss(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, x, y):
+        tmp = torch.cat((x,y),dim=0)
+        cov = torch.cov(tmp)
+        coef = torch.corrcoef(cov)[0][1]
+        if torch.isnan(coef):
+            coef = torch.tensor(0)
+        else:
+            pass
+        coef = torch.tensor(1) - coef
+
+        return coef
 
 def pearson(x, y):
     ns = 1e-4
@@ -112,3 +136,12 @@ class mse(nn.Module):
     def forward(self, pr, gt):
         return mean_squared_error(pr, gt, multioutput='raw_values')
 
+def stdout(ss):
+    sys.stdout.write(ss + '\r')
+    sys.stdout.flush()
+
+if __name__ == '__main__':
+    a = torch.rand(430, 23)
+    b = torch.rand(430, 23)
+    loss = corrcoefloss()
+    print(loss(a,b).shape, loss(a,b)[0][1])

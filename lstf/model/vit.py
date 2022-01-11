@@ -122,3 +122,9 @@ class ViT(nn.Module):
 
         x = self.to_latent(x)
         return self.mlp_head(x)
+
+if __name__ == '__main__':
+    model = ViT(image_size=(72,24), patch_size=(12,4), num_classes=23, dim=512, depth=12, heads=12, mlp_dim=2048, channels=2, dim_head=1024)
+    toy = torch.zeros((1,2,72,24))
+    out = model(toy)
+    print(out.shape)
