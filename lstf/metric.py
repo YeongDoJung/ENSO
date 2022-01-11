@@ -76,7 +76,10 @@ class PearsonLoss_old(nn.Module):
                 stdout(str(num) + ',' + str(div))
                 tt = 0
             tmp += tt
-        tmp /= b
+        if torch.isnan(tmp/b):
+            tmp = 1
+        else:
+            tmp /= b
 
         return tmp
 

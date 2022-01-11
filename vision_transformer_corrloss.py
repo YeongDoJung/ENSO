@@ -157,11 +157,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
-    parser.add_argument("--gpu", type=int, default=1)
+    parser.add_argument("--gpu", type=int, default=2)
     parser.add_argument("--batch_size", type=int, default=200)
     parser.add_argument("--numEpoch", type=int, default=300)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='vit_6channel_twoloss')
+    parser.add_argument("--name", type=str, default='vit_6channel_corrloss')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')
-    criterion = crit()
-    # criterion = metric.PearsonLoss_old()
+    # criterion = crit()
+    criterion = metric.PearsonLoss_old()
 
 
     corr_list = []
