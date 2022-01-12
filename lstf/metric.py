@@ -70,11 +70,11 @@ class PearsonLoss_old(nn.Module):
             xb = x[i, :] - torch.mean(x[i, :])
             yb = y[i, :] - torch.mean(y[i, :])
             num = torch.sum(xb*yb)
-            div = torch.sum(torch.sqrt((xb**2)*(yb**2))) + 1e-4
+            div = torch.sqrt(torch.sum((xb**2))*torch.sqrt(torch.sum(yb**2))) + 1e-4
             tt = (1 - num / div)
             if torch.isnan(tt):
                 stdout(str(num) + ',' + str(div))
-                tt = 0
+                tt = 1
             tmp += tt
         if torch.isnan(tmp/b):
             tmp = 1

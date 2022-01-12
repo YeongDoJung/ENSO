@@ -44,7 +44,7 @@ def pearson(pred, gt):
 
 def train(args, model, optimizer, trainset, criterion, writer):
     args = args
-    scaler = torch.cuda.amp.GradScaler(enabled=True)
+    # scaler = torch.cuda.amp.GradScaler(enabled=True)
     
     trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True, drop_last=True), total=len(trainset)//args.batch_size)
 
@@ -58,20 +58,21 @@ def train(args, model, optimizer, trainset, criterion, writer):
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
         # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
-        label = label.clone().detach().requires_grad_(True).to(device=device)
+        label = torch.sigmoid(0.5*label.clone().detach().requires_grad_(True).to(device=device))
 
         optimizer.zero_grad()
 
-        with torch.cuda.amp.autocast(enabled=True): 
+        # with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
-            output = model(src)
-            tl = criterion(output, label)
-            trainloss.update(tl)
+        output = model(src)
+        output = torch.sigmoid(0.5*output)
+        tl = criterion(output, label)
+        trainloss.update(tl)
 
-        scaler.scale(tl).backward() 
+        tl.backward() # scaler.scale(tl).backward() 
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
-        scaler.step(optimizer) 
-        scaler.update()
+        optimizer.step()# scaler.step(optimizer) 
+        # scaler.update()
 
         del src
         del label
@@ -85,7 +86,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
 
 def valid(args, model, valset, criterion, writer):
-    testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset)//args.batch_size)
+    testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset))
     valloss = metric.AverageMeter()
     model.eval()
 
@@ -97,13 +98,14 @@ def valid(args, model, valset, criterion, writer):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
-            label = label.clone().detach().requires_grad_(True).to(device=device)
+            label = torch.sigmoid(0.5*label.clone().detach().requires_grad_(True).to(device=device))
 
             idx = src.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
 
             for b in range(int(1)):
                 output = model(src) # inference
+                output = torch.sigmoid(0.5*output)
                 vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
@@ -157,11 +159,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
-    parser.add_argument("--gpu", type=int, default=2)
-    parser.add_argument("--batch_size", type=int, default=200)
-    parser.add_argument("--numEpoch", type=int, default=1000)
+    parser.add_argument("--gpu", type=int, default=3)
+    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--numEpoch", type=int, default=300)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='vit_6channel_corrloss_2')
+    parser.add_argument("--name", type=str, default='vit_6channel_bceloss')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -211,9 +213,9 @@ if __name__ == "__main__":
     model = build.get_vit(channels=6).to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
-    # criterion = nn.MSELoss(reduction='mean')
+    criterion = nn.BCELoss()
     # criterion = crit()
-    criterion = metric.PearsonLoss_old()
+    # criterion = metric.PearsonLoss_old()
 
 
     corr_list = []
