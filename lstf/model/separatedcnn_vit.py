@@ -48,7 +48,7 @@ class separated(nn.Module):
     def forward(self, x):
         for layer in self.convs:
             x = layer(x)
-        x = torch.squeeze(self.conv2(x))
+        x = torch.squeeze(self.conv2(x), dim=1)
         x = rearrange(x, 'b w h t -> b t w h')
         x = self.vit(x)
         return x

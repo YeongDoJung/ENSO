@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, separatedcnn_vit
+from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, separatedcnn_vit, pvt
 
 def Model_2D():
     return tdcnn.Model2D()
@@ -27,3 +27,7 @@ def get_vit(image_size=(72,24), patch_size=(12,4), num_classes=23, dim=512, dept
 
 def separated(n_layer = 3):
     return separatedcnn_vit.separated(n_layer = n_layer)
+
+def pyramid(name):
+    # 'pvt_tiny', 'pvt_small', 'pvt_medium', 'pvt_large'
+    return pvt[name]
