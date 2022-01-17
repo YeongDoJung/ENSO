@@ -15,7 +15,7 @@ import dataprocessing as dp
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from Models_remove_cc_time import Model_3D
+from remove_cc_time import Model_3D
 from parts_cp import dataset_times
 import argparse
 

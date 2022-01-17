@@ -4,6 +4,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 
+from .util import stdout
 from sklearn.metrics import mean_squared_error
 
 class AverageMeter(object):
@@ -38,25 +39,6 @@ def CorrelationSkill(real, pred):
         corr = 0
     corrAvg += corr
     return corrAvg
-
-class PositionalEmbedding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
-        super(PositionalEmbedding, self).__init__()
-        # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model).float()
-        pe.require_grad = False
-
-        position = torch.arange(0, max_len).float().unsqueeze(1)
-        div_term = (torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)).exp()
-
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe) #part of model, but it should not be considered a model parameter
-
-    def forward(self, x):
-        return self.pe[:, :x.size(1)]
 
 class PearsonLoss_old(nn.Module):
     def __init__(self):
@@ -139,9 +121,6 @@ class mse(nn.Module):
     def forward(self, pr, gt):
         return mean_squared_error(pr, gt, multioutput='raw_values')
 
-def stdout(ss):
-    sys.stdout.write(ss + '\r')
-    sys.stdout.flush()
 
 if __name__ == '__main__':
     a = torch.rand(430, 23)

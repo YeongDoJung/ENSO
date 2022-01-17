@@ -15,7 +15,7 @@ import dataprocessing as dp
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-from Models_remove_calendar_classification import Model_3D
+from remove_calendar_classification import Model_3D
 from parts_cp import datasets_general_3D_alllead
 import argparse
 
