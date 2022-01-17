@@ -22,9 +22,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
-from lstf import metric, util
-from lstf.datasets.dataset import basicdataset, rddataset, tdimdataset
-from lstf.model import build
+from ltsf import metric, util
+from ltsf.datasets.dataset import basicdataset, rddataset, tdimdataset
+from ltsf.model import build
 import argparse
 import tqdm
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
 
     
-    model = build.pyramid('pvt_large').to(device=device)
+    model = build.pyramid('pvt_small').to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')
