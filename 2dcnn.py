@@ -20,9 +20,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
-from lstf import metric
-from lstf.model import build
-from lstf.datasets.basicdatasets import tdimdataset
+from ltsf import metric
+from ltsf.model import build
+from ltsf.datasets.basicdatasets import tdimdataset
 import argparse
 import tqdm
 

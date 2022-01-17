@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import lstf.t2v as t2v
+import ltsf.t2v as t2v
 # torch.manual_seed(722)
 # torch.backends.cudnn.deterministic = True
 # torch.backends.cudnn.benchmark = False
