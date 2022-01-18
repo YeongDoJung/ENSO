@@ -59,7 +59,7 @@ class PearsonLoss_old(nn.Module):
                 tt = 1
             tmp += tt
         if torch.isnan(tmp/b):
-            tmp = 1
+            tmp = torch.tensor([1])
         else:
             tmp /= b
 

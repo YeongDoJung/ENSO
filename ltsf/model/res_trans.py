@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 
-from lstf.model.Transbase import Transformer
+from ltsf.model.Transbase import Transformer
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange

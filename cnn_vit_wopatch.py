@@ -1,3 +1,4 @@
+from numpy.core.numeric import zeros_like
 from sklearn import metrics
 import torch
 import torch.nn as nn
@@ -12,6 +13,7 @@ import os
 from pathlib import Path
 import sys
 
+
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
@@ -21,8 +23,8 @@ import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
 from ltsf import metric, util
+from ltsf.datasets.dataset import basicdataset, rddataset, tdimdataset
 from ltsf.model import build
-from ltsf.datasets.dataset import basicdataset
 import argparse
 import tqdm
 
@@ -40,74 +42,78 @@ def pearson(pred, gt):
     return allLoss
 
 
-def train(args, model, optimizer, trainset, valset, criterion):
+def train(args, model, optimizer, trainset, criterion, writer):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
-
-    if not os.path.exists(f'{Folder}/'):
-        os.makedirs(f'{Folder}/')
-    writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
     
-    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True), total=len(trainset)//args.batch_size)
+    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True, drop_last=True), total=len(trainset)//args.batch_size)
 
     # Training
     model.train()
 
     trainloss = metric.AverageMeter()
-    valloss = metric.AverageMeter()
     
-    for i, (batch, ansnino) in enumerate(trainloader):
-        # print(ansnino)
-        # tgt_mask = util.make_std_mask(ansnino).to(device=device)
-        batch = batch.clone().detach().requires_grad_(True).to(device=device)
-        ansnino = ansnino.clone().detach().requires_grad_(True).to(device=device)
+    for i, (src, label) in enumerate(trainloader):
+        # print(label)
+        # tgt_mask = util.make_std_mask(label).to(device=device)
+        src = src.clone().detach().requires_grad_(True).to(device=device)
+        # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
+        label = label.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast(enabled=True): 
-            tgt_mask = model.generate_square_subsequent_mask(ansnino.size(-1)).to(device=device)
-            output = model(batch, tgt_mask = tgt_mask)
-            tl = criterion(output, ansnino)
+            # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
+            output = model(src)
+            tl = criterion(output, label)
             trainloss.update(tl)
 
         scaler.scale(tl).backward() 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
         scaler.step(optimizer) 
         scaler.update()
 
-        del batch
-        del ansnino
+        del src
+        del label
 
         trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {trainloss.avg:.4f}-{tl:.4f}')
 
     writer.add_scalar('loss/train', trainloss.avg, args.current_epoch)
 
-    testloader = tqdm.tqdm(DataLoader(valset, batch_size=args.batch_size, shuffle=False), total=len(valset)//args.batch_size)
+    trainloss.reset()
+
+
+
+def valid(args, model, valset, criterion, writer):
+    testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset)//args.batch_size)
+    valloss = metric.AverageMeter()
     model.eval()
 
     assemble_real_nino = np.zeros((len(valset), 23))
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (batch, ansnino) in enumerate(testloader):
-            batch = batch.clone().detach().requires_grad_(True).to(device=device)
-            ansnino = ansnino.clone().detach().requires_grad_(True).to(device=device)
+        for i, (src, label) in enumerate(testloader):
+            src = src.clone().detach().requires_grad_(True).to(device=device)
+            # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
+            # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
+            label = label.clone().detach().requires_grad_(True).to(device=device)
 
-            idx = batch.shape[0]*i
-            uncertaintyarry_nino = np.zeros((1, batch.shape[0], 23))
+            idx = src.shape[0]*i
+            uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
 
             for b in range(int(1)):
-                output = model(batch) # inference
-                vl = criterion(output, ansnino)
+                output = model(src) # inference
+                vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
 
-                assemble_real_nino[idx:idx+batch.shape[0], :] = ansnino.cpu().numpy()
+                assemble_real_nino[idx:idx+src.shape[0], :] = label.cpu().numpy()
 
-            assemble_pred_nino[idx:idx+batch.shape[0], :] += np.mean(uncertaintyarry_nino, axis=0)
+            assemble_pred_nino[idx:idx+src.shape[0], :] += np.mean(uncertaintyarry_nino, axis=0)
             
-            del batch
-            del ansnino
+            del src
+            del label
 
             testloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {valloss.avg:.4f}-{vl:.4f}')
 
@@ -121,31 +127,41 @@ def train(args, model, optimizer, trainset, valset, criterion):
 
     corr_list.append(np.mean(corr))
 
+    writer.add_scalar('corr/test', np.mean(corr), args.current_epoch)
+    writer.flush()
+
     if (np.mean(corr)) > args.corr : 
         args.corr = np.mean(corr)
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
         torch.save(model.state_dict(), f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}.pth')
         np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_acc_{mse:.4f}_corr.csv', corr)
         print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, args.corr))
-        writer.add_scalar('corr/test', np.mean(corr), args.current_epoch)
-        writer.flush()
+
     writer.close()
 
     args.current_epoch += 1
-    trainloss.reset()
     valloss.reset()
 
-
+class crit(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.crt1=nn.MSELoss()
+        self.crt2=metric.PearsonLoss_old()
+    def forward(self,x,y):
+        l1 = self.crt1(x,y)
+        l2 = self.crt2(x,y)
+        ll = 0.3*l1 + 0.7*l2
+        return ll
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--startLead", type=int, default=1)
     parser.add_argument("--endLead", type=int, default=2)
     parser.add_argument("--gpu", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=400)
-    parser.add_argument("--numEpoch", type=int, default=700)
+    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--numEpoch", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='rfbtrans_2')
+    parser.add_argument("--name", type=str, default='cnn_vit_2')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -192,20 +208,27 @@ if __name__ == "__main__":
 
 
     
-    model = build.Transformer(2, 16).to(device=device)
+    model = build.cnn_vit_wo_patch(n_layer=3).to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss(reduction='mean')
+    # criterion = nn.MSELoss(reduction='mean')
+    criterion = crit()
+
 
     corr_list = []
     
     torch.cuda.empty_cache()
 
+    if not os.path.exists(f'{Folder}/'):
+        os.makedirs(f'{Folder}/tensorboard/')
+    writer = SummaryWriter(f'{Folder}/tensorboard/')
+
     for epoch in range(args.numEpoch):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        train(args, model=model, optimizer=optimizer, trainset=trainset, valset=valset, criterion=criterion)
+        train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
+        valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         # test(args, model=model, testloader)
 
     with open(Folder.joinpath('corr.csv'), 'a') as f:

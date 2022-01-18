@@ -150,7 +150,7 @@ class crit(nn.Module):
     def forward(self,x,y):
         l1 = self.crt1(x,y)
         l2 = self.crt2(x,y)
-        ll = 0.5*l1 + 0.5*l2
+        ll = 0.3*l1 + 0.7*l2
         return ll
 
 if __name__ == "__main__":
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--numEpoch", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='separated_cnn_vit')
+    parser.add_argument("--name", type=str, default='cnn_vit_2')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -211,8 +211,8 @@ if __name__ == "__main__":
     model = build.separated(n_layer=3).to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss(reduction='mean')
-    # criterion = crit()
+    # criterion = nn.MSELoss(reduction='mean')
+    criterion = crit()
 
 
     corr_list = []
