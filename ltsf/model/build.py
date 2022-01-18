@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt
+from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21
 
 def Model_2D():
     return tdcnn.Model2D()
@@ -34,3 +34,6 @@ def cnn_vit_wo_patch(n_layer = 3):
 def pyramid(name):
     # 'pvt_tiny', 'pvt_small', 'pvt_medium', 'pvt_large'
     return pvt[name]
+
+def h21model():
+    return h21.Model2D()
