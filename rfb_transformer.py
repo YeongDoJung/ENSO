@@ -20,7 +20,7 @@ sys.path.append(parentdir)
 import time
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error
 
 from ltsf import metric, util
 from ltsf.datasets.dataset import basicdataset, rddataset, tdimdataset
@@ -53,20 +53,19 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, label, y_c) in enumerate(trainloader):
+    for i, (src, label) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
         # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
         label = label.clone().detach().requires_grad_(True).to(device=device)
-        y_c = y_c.clone().detach().requires_grad_(True).to(device=device)
 
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
-            output, y_hat = model(src)
-            tl = criterion(output, label, y_hat, y_c)
+            output = model(src)
+            tl = criterion(output, label)
             trainloss.update(tl)
 
         scaler.scale(tl).backward() 
@@ -86,7 +85,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
 
 def valid(args, model, valset, criterion, writer):
-    testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset))
+    testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset)//args.batch_size)
     valloss = metric.AverageMeter()
     model.eval()
 
@@ -94,25 +93,20 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, label, y_c) in enumerate(testloader):
+        for i, (src, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             # tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
-            y_c = y_c.clone().detach().requires_grad_(True).to(device=device)
 
             idx = src.shape[0]*i
             uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
-            uncertaintyarry_type = np.zeros((src.shape[0], 12))
-            ans_type = np.zeros((src.shape[0], 12))
 
             for b in range(int(1)):
-                output, y_hat = model(src) # inference
-                vl = criterion(output, label, y_hat, y_c)
+                output = model(src) # inference
+                vl = criterion(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output.cpu()
-                uncertaintyarry_type[idx:idx+src.shape[0],:] = torch.argmax(y_hat, dim=-1).cpu()
-                ans_type[idx:idx+src.shape[0], :] = y_c.cpu()
 
                 assemble_real_nino[idx:idx+src.shape[0], :] = label.cpu().numpy()
 
@@ -129,9 +123,7 @@ def valid(args, model, valset, criterion, writer):
             corr[i] = metric.CorrelationSkill(assemble_real_nino[:, i], assemble_pred_nino[:, i])
 
         mse = mean_squared_error(assemble_pred_nino, assemble_real_nino)
-        acc = accuracy_score(uncertaintyarry_type, ans_type)
         print(corr)
-        print(acc)
 
     corr_list.append(np.mean(corr))
 
@@ -142,7 +134,7 @@ def valid(args, model, valset, criterion, writer):
         args.corr = np.mean(corr)
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
         torch.save(model.state_dict(), f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}.pth')
-        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_mse_{mse:.4f}_acc_{acc:.4f}_corr.csv', corr)
+        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_acc_{mse:.4f}_corr.csv', corr)
         print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, args.corr))
 
     writer.close()
@@ -154,11 +146,11 @@ class crit(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.crt1=nn.MSELoss()
-        self.crt2=nn.BCEWithLogitsLoss()
-    def forward(self,x,y, x_c, y_c):
+        self.crt2=metric.PearsonLoss_old()
+    def forward(self,x,y):
         l1 = self.crt1(x,y)
-        l2 = self.crt2(x_c,y_c)
-        ll = 0.8*l1 + 0.2*l2
+        l2 = self.crt2(x,y)
+        ll = 0.3*l1 + 0.7*l2
         return ll
 
 if __name__ == "__main__":
@@ -169,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--numEpoch", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--name", type=str, default='separated_cnn_vit')
+    parser.add_argument("--name", type=str, default='cnn_vit_2')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -211,12 +203,12 @@ if __name__ == "__main__":
     SSTFile_val_label = dataFolder / 'godas.label.1980_2017.nc'
 
     # Dataset for training
-    trainset = tdimdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-    valset = tdimdataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+    trainset = basicdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+    valset = basicdataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
 
     
-    model = build.h21model().to(device=device)
+    model = build.Transformer(2, 16).to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')

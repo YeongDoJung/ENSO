@@ -19,17 +19,11 @@ class basicdataset(D.Dataset):
         tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
         tdim, _, _, _, _ = tr_x.shape
 
-        tr_y_c = np.zeros((tdim,12))
-        for i in range(tdim):
-            mod = i%12
-            tr_y_c[i,mod] = 1
-
         sstData_label = nc.Dataset(SSTFile_label)
         tr_y = sstData_label[labelName][:, :, 0, 0]
 
         self.tr_x = np.array(tr_x)
         self.tr_y = np.array(tr_y[:, :])
-        self.y_c = np.array
 
     def _batchsize(self):
         return self.tr_x.shape
@@ -40,8 +34,7 @@ class basicdataset(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx, :]
-        y_c = self.y_c[idx]
-        return x, y, y_c
+        return x, y
 
 class tgtdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
@@ -86,9 +79,17 @@ class tdimdataset(D.Dataset):
         del sst, hc
 
         tr_x = rearrange(tr_x, 'l n c h w -> n (l c) w h') #(2, 35532, 3, 24, 72) -> (35532, 6, 72, 24)
+        tdim, _, _, _ = tr_x.shape
 
         sstData_label = nc.Dataset(SSTFile_label)
         tr_y = sstData_label[labelName][:, :, 0, 0]
+
+        tr_y_c = np.zeros((tdim,12))
+        for i in range(tdim):
+            mod = i%12
+            tr_y_c[i,mod] = 1
+        self.y_c = np.array(tr_y_c)
+
 
         self.tr_x = np.array(tr_x)
         self.tr_y = np.array(tr_y[:, :])
@@ -100,7 +101,7 @@ class tdimdataset(D.Dataset):
         return len(self.tr_x)
 
     def __getitem__(self, idx):
-        return self.tr_x[idx], self.tr_y[idx, :]
+        return self.tr_x[idx], self.tr_y[idx, :], self.y_c[idx, :]
 
 class rddataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
