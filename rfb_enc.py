@@ -146,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_enc_2')
+    parser.add_argument('--dataset', type=bool, default=False)
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -178,13 +179,18 @@ if __name__ == "__main__":
 
     # Dataset for pretraining
     Folder = Path(str(Path(__file__).parent) + "/local/" + args.name)
-    dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/Ham/') #"./"
+    dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/') #"./"
 
-
-    SSTFile_train = dataFolder / 'cmip5_tr.input.1861_2001.nc'
-    SSTFile_train_label = dataFolder / 'cmip5_tr.label.1861_2001.nc'
-    SSTFile_val = dataFolder / 'godas.input.1980_2017.nc'
-    SSTFile_val_label = dataFolder / 'godas.label.1980_2017.nc'
+    if args.dataset == True:
+        SSTFile_train_sst = dataFolder / 'OISST/finetuning/oisst_ssta_monthly(1982-2015).nc'
+        SSTFile_train_hc = dataFolder / 'OISST/finetuning/ecmwf_hca_monthly(1982-2015).nc'
+        SSTFile_test_sst = dataFolder / 'OISST/test/oisst_ssta_monthly(1982-2018).nc'
+        SSTFile_test_hc = dataFolder / 'OISST/test/ecmwf_hca_monthly(1982-2018).nc'
+    else:
+        SSTFile_train = dataFolder / '/Ham/cmip5_tr.input.1861_2001.nc'
+        SSTFile_train_label = dataFolder / '/Ham/cmip5_tr.label.1861_2001.nc'
+        SSTFile_val = dataFolder / '/Ham/godas.input.1980_2017.nc'
+        SSTFile_val_label = dataFolder / '/Ham/godas.label.1980_2017.nc'
 
     # Dataset for training
     trainset = tgtdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 

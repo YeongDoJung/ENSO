@@ -1,0 +1,1 @@
+python main.py --name vit_oisst --data True --dataset oisst2 --model get_vit --batch_size 50

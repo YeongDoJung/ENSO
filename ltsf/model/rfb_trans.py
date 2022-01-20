@@ -98,7 +98,7 @@ class BasicConv3d(nn.Module):
         self.conv = nn.Conv3d(in_planes, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
-        nn.init.orthogonal_(self.conv.weight, gain=gain)
+        nn.init.xavier_uniform_(self.conv.weight, gain=gain)
         # nn.init.constant_(self.conv.bias.data, 0)
         # self.bn = nn.BatchNorm3d(out_planes)
         self.relu = nn.ReLU(inplace=True)

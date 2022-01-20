@@ -1,10 +1,15 @@
 import numpy as np
 import netCDF4 as nc
+from pathlib import Path
 from einops import rearrange, reduce
+from timm.models.registry import register_model
 
 import torch
 import torch.utils.data as D
 
+__all__ = ['basicdataset', 'tgtdatset', 'tdimdataset', 'rddataset', 'oisstdataset']
+
+@register_model
 class basicdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -36,6 +41,7 @@ class basicdataset(D.Dataset):
         y = self.tr_y[idx, :]
         return x, y
 
+@register_model
 class tgtdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -67,6 +73,7 @@ class tgtdataset(D.Dataset):
         y = np.squeeze(self.tr_y[idx, :])
         return x, shifted_right, y
 
+@register_model
 class tdimdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -103,6 +110,7 @@ class tdimdataset(D.Dataset):
     def __getitem__(self, idx):
         return self.tr_x[idx], self.tr_y[idx, :], self.y_c[idx, :]
 
+@register_model
 class rddataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -131,33 +139,92 @@ class rddataset(D.Dataset):
     def __getitem__(self, idx):
         return self.tr_x[idx], self.tr_y[idx, :]
 
-class ninodataset(D.Dataset):
-    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
-        sstData =  nc.Dataset(SSTFile)
-        sst = sstData[sstName][:, :, :, :]
-        sst = np.expand_dims(sst, axis = 0)
+@register_model
+class oisst2(D.Dataset):
+    def __init__(self, sst_fp, hc_fp, mode, input_month = 3):
+        if mode == 'train':
+            endoflist = 408 - input_month
+        elif mode == 'valid':
+            endoflist = 444 - input_month
+        
+        sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
+        hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
+        sst = np.nan_to_num(sstData.tolist(fill_value=0), nan=0)
+        hc = np.nan_to_num(hcData.tolist(fill_value=0), nan=0)
+        sst = rearrange(sstData, 'a b c -> 1 a b c')
+        sst = self.make_n_monthdata(sst, input_month)
+        sst = sst[:,:endoflist,:,:]    # sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
 
-        hc = sstData[hcName][:, :, :, :]
-        hc = np.expand_dims(hc, axis = 0)
-        tr_x = np.append(sst, hc, axis = 0)
+
+        hc = rearrange(hcData, 'a b c -> 1 a b c')
+        # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
+        hc = self.make_n_monthdata(hc, input_month)
+        # hc = rearrange(hc[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
+        hc = hc[:,:endoflist,:,:]
+
+        # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+        self.tr_x = np.append(sst, hc, axis = 0) # 6, 456, 180, 360
+        self.tr_x = np.array(rearrange(self.tr_x, 'c b h w -> b c h w'), dtype=np.float16)
+
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float16)
+
         del sst, hc
 
-        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
-        tdim, _, _, _, _ = tr_x.shape
-
-        sstData_label = nc.Dataset(SSTFile_label)
-        tr_y = sstData_label[labelName][:, :, 0, 0]
-
-        self.tr_x = np.array(tr_x)
-        self.tr_y = np.array(tr_y[:, :])
-
-    def _batchsize(self):
-        return self.tr_x.shape
+    def make_n_monthdata(self, x, n):
+        tmp = []
+        for i in range(n):
+            tmp.append(x[0, i:-(n-i)])
+        return np.stack(tmp, axis=0)
 
     def __len__(self):
-        return len(self.tr_x)
+        return len(self.tr_x) - 23
 
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
-        y = self.tr_y[idx, :]
+        y = self.tr_y[idx:idx+23]
+        return x, y
+
+@register_model
+class oisst3(D.Dataset):
+    def __init__(self, sst_fp, hc_fp, mode, input_month = 3):
+        if mode == 'train':
+            endoflist = 408 - input_month
+        elif mode == 'valid':
+            endoflist = 444 - input_month
+        
+        sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
+        hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
+        sst = np.nan_to_num(sstData.tolist(fill_value=0), nan=0)
+        hc = np.nan_to_num(hcData.tolist(fill_value=0), nan=0)
+        sst = rearrange(sstData, 'a b c -> 1 a b c')
+        # sst = np.stack((sst[0,:-2,:,:], sst[0,1:-1,:,:], sst[0,2:,:,:]), axis=0)
+        sst = self.make_n_monthdata(sst, input_month)
+        sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
+        # sst = np.expand_dims(sst[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+
+        hc = rearrange(hcData, 'a b c -> 1 a b c')
+        # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
+        hc = self.make_n_monthdata(hc, input_month)
+        hc = rearrange(hc[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
+
+        # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+        self.tr_x = np.append(sst, hc, axis = 0) # 2, 3, 456, 180, 360
+        self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c h w d'), dtype=np.float16)
+
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float16)
+
+        del sst, hc
+
+    def make_n_monthdata(self, x, n):
+        tmp = []
+        for i in range(n):
+            tmp.append(x[0, i:-(n-i)])
+        return np.stack(tmp, axis=0)
+
+    def __len__(self):
+        return len(self.tr_x) - 23
+
+    def __getitem__(self, idx):
+        x = self.tr_x[idx] 
+        y = self.tr_y[idx:idx+23]
         return x, y

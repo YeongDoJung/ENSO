@@ -21,7 +21,7 @@ class RFB_Transformer(nn.Module):
 
         self.decoder = decoder
 
-        self.transformer = Transformer(d_model = 64) #embed_dim must be divisible by num_heads
+        self.transformer = ViT(d_model = 64) #embed_dim must be divisible by num_heads
 
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 

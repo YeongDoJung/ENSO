@@ -31,6 +31,7 @@ class separated(nn.Module):
         for n in range(n_layer - 1):
             self.convs.append(nn.Conv3d(in_channel, tmp_channel, kernel_size=(3,3,1)))
             self.convs.append(nn.Conv3d(tmp_channel, out_channel, kernel_size=(1,1,3), padding=(0,0,1)))
+            self.convs.append(nn.GELU())
             in_channel = out_channel
             tmp_channel = in_channel*2
             out_channel = tmp_channel*2

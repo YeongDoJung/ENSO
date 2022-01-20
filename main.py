@@ -22,7 +22,7 @@ import matplotlib.image as mpimg
 from sklearn.metrics import mean_squared_error
 
 from ltsf import metric, util
-from ltsf.datasets.dataset import tgtdataset
+from ltsf.datasets import dataset
 from ltsf.model import build
 import argparse
 import tqdm
@@ -146,7 +146,9 @@ if __name__ == "__main__":
     parser.add_argument("--numEpoch", type=int, default=700)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_enc_2')
-    parser.add_argument('--dataset', type=bool, default=False)
+    parser.add_argument('--data', type=bool, default=False)
+    parser.add_argument('--model', type=str, default='')
+    parser.add_argument('--dataset', type=str, default='')
 
 
     parser.add_argument("--val_min", type=float, default=9999)
@@ -181,24 +183,27 @@ if __name__ == "__main__":
     Folder = Path(str(Path(__file__).parent) + "/local/" + args.name)
     dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/') #"./"
 
-    if args.dataset == True:
-        SSTFile_train_sst = dataFolder / 'OISST/finetuning/oisst_ssta_monthly(1982-2015).nc'
-        SSTFile_train_hc = dataFolder / 'OISST/finetuning/ecmwf_hca_monthly(1982-2015).nc'
-        SSTFile_test_sst = dataFolder / 'OISST/test/oisst_ssta_monthly(1982-2018).nc'
-        SSTFile_test_hc = dataFolder / 'OISST/test/ecmwf_hca_monthly(1982-2018).nc'
+    if args.data == True:
+        SSTFile_train_sst = dataFolder / 'oisst' / 'finetuning' / 'sst.nc'
+        SSTFile_train_hc = dataFolder / 'oisst' / 'finetuning' / 'hc.nc'
+        SSTFile_test_sst = dataFolder / 'oisst' / 'test' / 'sst.nc'
+        SSTFile_test_hc = dataFolder / 'oisst' / 'test' / 'hc.nc'
+
+        trainset = dataset.__dict__[args.dataset](SSTFile_train_sst, SSTFile_train_hc, 'train')
+        valset = dataset.__dict__[args.dataset](SSTFile_test_sst, SSTFile_test_hc, 'valid')
     else:
-        SSTFile_train = dataFolder / '/Ham/cmip5_tr.input.1861_2001.nc'
-        SSTFile_train_label = dataFolder / '/Ham/cmip5_tr.label.1861_2001.nc'
-        SSTFile_val = dataFolder / '/Ham/godas.input.1980_2017.nc'
-        SSTFile_val_label = dataFolder / '/Ham/godas.label.1980_2017.nc'
+        SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
+        SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001.nc'
+        SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
+        SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
+
+        trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+        valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
     # Dataset for training
-    trainset = tgtdataset(SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-    valset = tgtdataset(SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
-
 
     
-    model = build.res_encs().to(device=device)
+    model = build.__dict__[args.model]().to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     criterion = nn.MSELoss(reduction='mean')
