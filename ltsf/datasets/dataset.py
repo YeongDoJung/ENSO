@@ -151,6 +151,12 @@ class oisst2(D.Dataset):
         hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
         sst = np.nan_to_num(sstData.tolist(fill_value=0), nan=0)
         hc = np.nan_to_num(hcData.tolist(fill_value=0), nan=0)
+        sst = np.where(sst > 10 , 0, sst)
+        sst = np.where(sst < -10 , 0, sst)
+
+        hc = np.where(hc > 10, 0, hc)
+        hc = np.where(hc < -10, 0, hc)
+
         sst = rearrange(sstData, 'a b c -> 1 a b c')
         sst = self.make_n_monthdata(sst, input_month)
         sst = sst[:,:endoflist,:,:]    # sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
@@ -164,9 +170,9 @@ class oisst2(D.Dataset):
 
         # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
         self.tr_x = np.append(sst, hc, axis = 0) # 6, 456, 180, 360
-        self.tr_x = np.array(rearrange(self.tr_x, 'c b h w -> b c h w'), dtype=np.float16)
+        self.tr_x = np.array(rearrange(self.tr_x, 'c b h w -> b c h w'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float16)
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float32)
 
         del sst, hc
 
@@ -209,9 +215,9 @@ class oisst3(D.Dataset):
 
         # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 3, 456, 180, 360
-        self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c h w d'), dtype=np.float16)
+        self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c h w d'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float16)
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float32)
 
         del sst, hc
 

@@ -103,10 +103,10 @@ class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
     """
 
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+    def __init__(self, img_size, patch_size, in_chans=3, embed_dim=768):
         super().__init__()
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
+        # img_size = to_2tuple(img_size)
+        # patch_size = to_2tuple(patch_size)
 
         self.img_size = img_size
         self.patch_size = patch_size
@@ -128,7 +128,7 @@ class PatchEmbed(nn.Module):
 
 
 class PyramidVisionTransformer(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dims=[64, 128, 256, 512],
+    def __init__(self, img_size=(360,180), patch_size=(18,18), in_chans=6, num_classes=1000, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4):
@@ -141,8 +141,8 @@ class PyramidVisionTransformer(nn.Module):
         cur = 0
 
         for i in range(num_stages):
-            patch_embed = PatchEmbed(img_size=img_size if i == 0 else img_size // (2 ** (i + 1)),
-                                     patch_size=patch_size if i == 0 else 2,
+            patch_embed = PatchEmbed(img_size=img_size if i == 0 else tuple((k // (2 ** (i + 1))) for k in img_size),
+                                     patch_size=patch_size if i == 0 else (2 for k in patch_size),
                                      in_chans=in_chans if i == 0 else embed_dims[i - 1],
                                      embed_dim=embed_dims[i])
             num_patches = patch_embed.num_patches if i != num_stages - 1 else patch_embed.num_patches + 1
