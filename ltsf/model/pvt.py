@@ -128,7 +128,7 @@ class PatchEmbed(nn.Module):
 
 
 class PyramidVisionTransformer(nn.Module):
-    def __init__(self, img_size=(360,180), patch_size=(18,18), in_chans=6, num_classes=1000, embed_dims=[64, 128, 256, 512],
+    def __init__(self, img_size=(360,180), patch_size=(4,4), in_chans=6, num_classes=1000, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4):
@@ -142,7 +142,7 @@ class PyramidVisionTransformer(nn.Module):
 
         for i in range(num_stages):
             patch_embed = PatchEmbed(img_size=img_size if i == 0 else tuple((k // (2 ** (i + 1))) for k in img_size),
-                                     patch_size=patch_size if i == 0 else (2 for k in patch_size),
+                                     patch_size=patch_size if i == 0 else (2,2),
                                      in_chans=in_chans if i == 0 else embed_dims[i - 1],
                                      embed_dim=embed_dims[i])
             num_patches = patch_embed.num_patches if i != num_stages - 1 else patch_embed.num_patches + 1
@@ -204,7 +204,7 @@ class PyramidVisionTransformer(nn.Module):
         else:
             return F.interpolate(
                 pos_embed.reshape(1, patch_embed.H, patch_embed.W, -1).permute(0, 3, 1, 2),
-                size=(H, W), mode="bilinear").reshape(1, -1, H * W).permute(0, 2, 1)
+                size=(H, W), mode="bilinear", align_corners=True).reshape(1, -1, H * W).permute(0, 2, 1)
 
     def forward_features(self, x):
         B = x.shape[0]

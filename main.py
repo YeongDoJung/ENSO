@@ -64,6 +64,8 @@ def train(args, model, optimizer, trainset, criterion, writer):
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
             output = model(src)
             tl = criterion(output, label)
+            # if torch.isnan(tl):
+            #     print(src)
             trainloss.update(tl)
 
         scaler.scale(tl).backward() 
