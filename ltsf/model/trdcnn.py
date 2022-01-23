@@ -1,5 +1,6 @@
 import torch 
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 # torch.manual_seed(722)
 # torch.backends.cudnn.deterministic = True
@@ -109,7 +110,7 @@ class Attention(nn.Module):
 
 
 class Model3D(nn.Module):
-    def __init__(self, in_channels, out_channels, num_layer, num_answer, drop, input):
+    def __init__(self, in_channels, out_channels, num_layer):
         super(Model3D, self).__init__()
         self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
@@ -129,7 +130,7 @@ class Model3D(nn.Module):
         
 
         self.layers = 2
-        self.decode_lengths = 23
+        self.decode_lengths = 26
         # init_dim = encoder_dim
         self.decode_steps = nn.ModuleList()
         self.init_hs = nn.ModuleList()
@@ -183,7 +184,7 @@ class Model3D(nn.Module):
         self.linear2.bias.data.fill_(0)
         nn.init.orthogonal_(self.linear2.weight, gain=gain)
 
-        self.droprate = drop
+        self.droprate = 0.5
         self.num_layer = num_layer
 
         self.maxpool2d = nn.MaxPool3d(kernel_size = (2, 2, 1), stride=(2, 2, 1))
@@ -193,17 +194,17 @@ class Model3D(nn.Module):
         # print(x.shape)
         # out = self.conv(x)
         out = self.rfb1(x)
-        out = nn.Dropout2d(out, self.droprate, apply=True)
+        out = MCDropout(out, self.droprate, apply=True)
         out = self.relu(out)
         out = self.maxpool2d(out)
 
         out = self.rfb2(out)
-        out = nn.Dropout2d(out, self.droprate, apply=True)
+        out = MCDropout(out, self.droprate, apply=True)
         out = self.relu(out)
         out = self.maxpool2d(out)
         
         out = self.rfb3(out)
-        out = nn.Dropout2d(out, self.droprate, apply=True)
+        out = MCDropout(out, self.droprate, apply=True)
         out = self.relu(out)
         out = self.maxpool2d(out)
 
@@ -230,9 +231,9 @@ class Model3D(nn.Module):
             cs.append(input_c)
 
         overlap = 1
-        predictions = torch.zeros(batch_size, self.decode_lengths, 1).to(device)
-        alphas = torch.zeros(batch_size, num_pixels, 1).to(device)
-        counts = torch.zeros(batch_size, self.decode_lengths, 1).to(device)
+        predictions = torch.zeros(batch_size, self.decode_lengths).to(device)
+        alphas = torch.zeros(batch_size, num_pixels).to(device)
+        counts = torch.zeros(batch_size, self.decode_lengths).to(device)
 
         for b in range(batch_size):
             h = hs[0]   
@@ -247,22 +248,15 @@ class Model3D(nn.Module):
                 h_prev = h
                 hs[l] = h
                 cs[l] = c
-            h = nn.Dropout2d(h, self.droprate, apply=True)
+            h = MCDropout(h, self.droprate, apply=True)
             preds = self.fc(h)
-            predictions[b:b+1, :, 0] += preds
-            alphas[b:b+1, :, 0] = alpha
-            counts[b:b+1, :, 0] += torch.ones_like(preds)
+            predictions[b:b+1, :] += preds
+            alphas[b:b+1, :] = alpha
+            counts[b:b+1, :] += torch.ones_like(preds)
             
         predictions /= counts
-        # Classification
-        flat = self.flatten(out)
-        # print(flat.shape)
-        out_c = self.linear1(flat)
-        out_c = self.tanh(out_c)
-        out_c = nn.Dropout2d(out_c, self.droprate, apply=True)
-        out_c = self.linear2(out_c)
 
-        return (predictions, out_c, alphas)
+        return predictions
 
     def num_flat_features(self, x):
         size = x.size()[1:]  # all dimensions except the batch dimension
@@ -270,3 +264,6 @@ class Model3D(nn.Module):
         for s in size:
             num_features *= s
         return num_features
+
+def MCDropout(act_vec, p=0.5, apply=True):
+    return F.dropout(act_vec, p=p, training=apply)

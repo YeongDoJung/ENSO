@@ -8,8 +8,6 @@ from timm.models.registry import register_model
 import torch
 import torch.utils.data as D
 
-__all__ = ['basicdataset', 'tgtdatset', 'tdimdataset', 'rddataset', 'oisstdataset']
-
 @register_model
 class basicdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
@@ -40,6 +38,35 @@ class basicdataset(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx, :]
+        return x, y
+
+@register_model
+class tfdataset(D.Dataset):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
+        sstData =  nc.Dataset(SSTFile)
+        sst = sstData[sstName][:, :, :, :]
+        sst = np.expand_dims(sst, axis = 0)
+
+        hc = sstData[hcName][:, :, :, :]
+        hc = np.expand_dims(hc, axis = 0)
+        tr_x = np.append(sst, hc, axis = 0)
+        del sst, hc
+
+        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
+        tdim, _, _, _, _ = tr_x.shape
+
+        sstData_label = np.load(SSTFile_label)
+
+        self.tr_y = sstData_label[:, :, 0]
+        self.tr_x = np.array(tr_x)
+        print(self.tr_x.shape, self.tr_y.shape)
+
+    def __len__(self):
+        return len(self.tr_x) - 26
+
+    def __getitem__(self, idx):
+        x = self.tr_x[idx+3] 
+        y = self.tr_y[idx:idx+26,0]
         return x, y
 
 @register_model

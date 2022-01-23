@@ -22,7 +22,7 @@ class RFB_Transformer(nn.Module):
         # if decoder == True:
         #     self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
         # else :
-        self.transformer = ViT(num_classes = 23, dim = 64, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024)
+        self.transformer = ViT(num_classes = 26, dim = 64, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024)
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 
         self.dense_1 = nn.Linear(64, 1)
