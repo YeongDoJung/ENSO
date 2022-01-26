@@ -58,10 +58,11 @@ def cnn_vit_wo_patch(n_layer = 3):
 @register_model
 def pyramid(name='pvt_large'):
     # 'pvt_tiny', 'pvt_small', 'pvt_medium', 'pvt_large'
-    return pvt[name](img_size=(360, 180), patch_size=(20,20), in_chans=6, num_classes=1000, embed_dims=[64, 128, 256, 512],
-                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
-                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
-                 depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4)
+    return pvt.PyramidVisionTransformer()
+    # (img_size=(360, 180), patch_size=4, in_chans=6, num_classes=1000, embed_dims=[64, 128, 256, 512],
+    #              num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
+    #              attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
+    #              depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4)
 
 @register_model
 def h21model():
