@@ -208,20 +208,22 @@ class oisst2(D.Dataset):
         
         sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
         hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
-        sst = np.nan_to_num(sstData.tolist(fill_value=0), nan=0)
-        hc = np.nan_to_num(hcData.tolist(fill_value=0), nan=0)
-        sst = np.where(sst > 10 , 0, sst)
-        sst = np.where(sst < -10 , 0, sst)
 
-        hc = np.where(hc > 10, 0, hc)
-        hc = np.where(hc < -10, 0, hc)
+        sst = pd.DataFrame(rearrange(sstData, 'a b c -> a (b c)'))
+        sst = sst.fillna(0)
+        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
 
-        sst = rearrange(sstData, 'a b c -> 1 a b c')
+        hc = pd.DataFrame(rearrange(hcData, 'a b c -> a (b c)'))
+        hc = hc.fillna(0)
+        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
+        hc = (hc - hc.max()) / (hc.max() - hc.min())
+
+        sst = rearrange(sst, 'a b c -> 1 a b c')
         sst = self.make_n_monthdata(sst, input_month)
         sst = sst[:,:endoflist,:,:]    # sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
 
 
-        hc = rearrange(hcData, 'a b c -> 1 a b c')
+        hc = rearrange(hc, 'a b c -> 1 a b c')
         # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
         hc = self.make_n_monthdata(hc, input_month)
         # hc = rearrange(hc[:,:endoflist,:,:], 'a b c d -> 1 b a c d')

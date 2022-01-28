@@ -43,7 +43,7 @@ class separated(nn.Module):
         w_, h_ = int(w / n_patch), int(h / n_patch)
 
 
-        self.vit = ViT(image_size=(w,h), patch_size=(w_,h_), num_classes=23, dim=512, depth=12, heads=12, mlp_dim=2048, channels=3, dim_head=1024)
+        self.vit = ViT(image_size=(w,h), patch_size=(w_,h_), num_classes=26, dim=512, depth=12, heads=12, mlp_dim=2048, channels=3, dim_head=1024)
 
 
     def forward(self, x):
