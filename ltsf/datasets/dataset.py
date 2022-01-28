@@ -70,6 +70,36 @@ class tfdataset(D.Dataset):
         return x, y
 
 @register_model
+class tfhcnorm(D.Dataset):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
+        sstData =  nc.Dataset(SSTFile)
+        sst = sstData[sstName][:, :, :, :]
+        sst = np.expand_dims(sst, axis = 0)
+
+        hc = np.array(sstData[hcName][:, :, :, :])
+        hc = (hc - hc.min()) / (hc.max() - hc.min())
+        hc = np.expand_dims(hc, axis = 0)
+        tr_x = np.append(sst, hc, axis = 0)
+        del sst, hc
+
+        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
+        tdim, _, _, _, _ = tr_x.shape
+
+        sstData_label = np.load(SSTFile_label)
+
+        self.tr_y = sstData_label[:, :, 0]
+        self.tr_x = np.array(tr_x)
+        print(self.tr_x.shape, self.tr_y.shape)
+
+    def __len__(self):
+        return len(self.tr_x) - 26
+
+    def __getitem__(self, idx):
+        x = self.tr_x[idx+3] 
+        y = self.tr_y[idx:idx+26,0]
+        return x, y
+
+@register_model
 class tgtdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -136,7 +166,8 @@ class tdimdataset(D.Dataset):
         return len(self.tr_x)
 
     def __getitem__(self, idx):
-        return self.tr_x[idx], self.tr_y[idx, :], self.y_c[idx, :]
+        return self.tr_x[idx], self.tr_y[idx, :]
+        # , self.y_c[idx, :]
 
 @register_model
 class rddataset(D.Dataset):
@@ -150,7 +181,7 @@ class rddataset(D.Dataset):
         tr_x = np.append(sst, hc, axis = 0)
         del sst, hc
 
-        tr_x = rearrange(tr_x, 'c n h w -> n c w h') #(2, 35532, 24, 72) -> (35532, 72, 24, 2)
+        tr_x = rearrange(tr_x, 'c n h w -> n w h c') #(2, 35532, 24, 72) -> (35532, 72, 24, 2)
 
         sstData_label = nc.Dataset(SSTFile_label)
         tr_y = sstData_label[labelName][:, :, 0, 0] # sstData_label.shpae = 35532, 23, 1, 1

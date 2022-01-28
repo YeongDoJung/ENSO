@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
-from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt
+from . import Transbase, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io
 
 __all__ = ['Model_2D',
 'encoders',
@@ -75,3 +75,26 @@ def sep_pvt(n_layer = 3, img_size=(360, 180), patch_size=(20,20), in_chans=3, nu
 
     return separatedcnn_pvt.separated(n_layer, img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, 
                 qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages)
+
+@register_model
+def perceiver(num_freq_bands=None,
+        depth=12,
+        max_freq=None,
+        input_channels = 2,
+        input_axis = 2,
+        num_latents = 512,
+        latent_dim = 512,
+        cross_heads = 1,
+        latent_heads = 8,
+        cross_dim_head = 64,
+        latent_dim_head = 64,
+        num_classes = 23,
+        attn_dropout = 0.,
+        ff_dropout = 0.,
+        weight_tie_layers = False,
+        fourier_encode_data = False,
+        self_per_cross_attn = 1,
+        final_classifier_head = True):
+    return perceiver_pytorch.Perceiver(num_freq_bands = num_freq_bands, max_freq=max_freq, depth=depth, input_channels=input_channels, input_axis=input_axis, num_latents=num_latents, latent_dim=latent_dim, 
+                                    cross_heads=cross_heads, latent_heads=latent_heads, cross_dim_head=cross_dim_head, latent_dim_head=latent_dim_head, num_classes=num_classes, attn_dropout=attn_dropout, ff_dropout=ff_dropout, 
+                                    weight_tie_layers=weight_tie_layers, fourier_encode_data=fourier_encode_data, self_per_cross_attn=self_per_cross_attn, final_classifier_head=final_classifier_head)
