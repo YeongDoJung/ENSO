@@ -215,7 +215,8 @@ if __name__ == "__main__":
     model = build.__dict__[args.model]().to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
-    criterion = nn.MSELoss(reduction='mean')
+    # criterion = nn.MSELoss(reduction='mean')
+    criterion = metric.weightedMSE()
 
     corr_list = []
     

@@ -1,4 +1,5 @@
 import sys
+from einops import rearrange
 
 import numpy as np
 import torch.nn as nn
@@ -80,6 +81,18 @@ class corrcoefloss(nn.Module):
         coef = torch.tensor(1) - coef
 
         return coef
+
+class weightedMSE(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self,x,y):
+        device = x.device
+        err = x - y
+        a = torch.linspace(0.5, 1, 23).to(device=device)
+        a = rearrange(a, '... -> 1 ...')
+        werr = torch.mean(a * err**2)
+        return werr
 
 def pearson(x, y):
     ns = 1e-4
