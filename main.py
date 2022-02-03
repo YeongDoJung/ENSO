@@ -103,7 +103,7 @@ def valid(args, model, valset, criterion, writer):
 
             for b in range(int(1)):
                 output = model(src) # inference
-                vl = criterion(output, label)
+                vl = val_crit(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output[:,-23:].cpu()
 
@@ -126,8 +126,8 @@ def valid(args, model, valset, criterion, writer):
 
     corr_list.append(np.mean(corr))
 
-    if (np.mean(corr)) > args.corr : 
-        args.corr = np.mean(corr)
+    if (valloss.avg) < args.valloss_best : 
+        args.valloss_best = np.mean(corr)
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
         torch.save(model.state_dict(), f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}.pth')
         np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_acc_{mse:.4f}_corr.csv', corr)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     leadMax = 24                # No. lead time
 
-    args.corr = 0
+    args.valloss_best = 0
 
     # Dataset for pretraining
     Folder = Path(str(Path(__file__).parent) + "/local/" + args.name)
@@ -217,6 +217,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')
     criterion = metric.weightedMSE()
+    val_crit = nn.MSELoss()
 
     corr_list = []
     
