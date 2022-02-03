@@ -124,6 +124,8 @@ def valid(args, model, valset, criterion, writer):
         mse = mean_squared_error(assemble_pred_nino, assemble_real_nino)
         print(corr)
 
+        util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png')
+
     corr_list.append(np.mean(corr))
 
     if (valloss.avg) < args.valloss_best : 
@@ -184,6 +186,7 @@ if __name__ == "__main__":
     # Dataset for pretraining
     Folder = Path(str(Path(__file__).parent) + "/local/" + args.name)
     dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/') #"./"
+    os.makedirs(f'{Folder}/fig/', exist_ok=True)
 
     if args.data == 1:
         SSTFile_train_sst = dataFolder / 'oisst' / 'finetuning' / 'sst.nc'

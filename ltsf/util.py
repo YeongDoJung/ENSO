@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 def subsequent_mask(size):
     atten_shape = (1, size, size)
@@ -36,3 +37,10 @@ class PositionalEmbedding(nn.Module):
 def stdout(ss):
     sys.stdout.write(ss + '\r')
     sys.stdout.flush()
+
+def ploter(a, fp):
+    timeline = np.arange(0, 23)
+
+    plt.plot(timeline, np.sqrt(a), marker='', color='blue', linewidth=1)
+    plt.legend()
+    plt.savefig(fp, orientation='landscape', bbox_inches='tight')
