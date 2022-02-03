@@ -40,6 +40,8 @@ def stdout(ss):
 
 def ploter(a, fp):
     timeline = np.arange(0, 23)
-
-    plt.plot(timeline, np.sqrt(a), marker='', color='blue', linewidth=1)
+    ax = plt.gca()
+    ax.set_ylim([0, 1])
+    plt.plot(timeline, a, marker='', color='blue', linewidth=1)
     plt.savefig(fp, orientation='landscape')
+    plt.cla()
