@@ -126,8 +126,6 @@ def valid(args, model, valset, criterion, writer):
 
         util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png')
 
-    corr_list.append(np.mean(corr))
-
     if (valloss.avg) < args.valloss_best : 
         args.valloss_best = np.mean(corr)
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
@@ -140,6 +138,8 @@ def valid(args, model, valset, criterion, writer):
 
     args.current_epoch += 1
     valloss.reset()
+
+    return corr
 
 
 
@@ -235,7 +235,8 @@ if __name__ == "__main__":
         torch.backends.cudnn.benchmark = False
 
         train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
-        valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
+        c = valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
+        corr_list.append(c)
         # test(args, model=model, testloader)
 
     with open(Folder.joinpath('corr.csv'), 'a') as f:

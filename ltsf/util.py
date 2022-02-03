@@ -42,5 +42,4 @@ def ploter(a, fp):
     timeline = np.arange(0, 23)
 
     plt.plot(timeline, np.sqrt(a), marker='', color='blue', linewidth=1)
-    plt.legend()
-    plt.savefig(fp, orientation='landscape', bbox_inches='tight')
+    plt.savefig(fp, orientation='landscape')
