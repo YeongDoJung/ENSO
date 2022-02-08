@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import netCDF4 as nc
 from pathlib import Path
-from einops import rearrange, reduce
+from einops import rearrange, reduce, repeat
 from timm.models.registry import register_model
 
 import torch
@@ -113,7 +113,6 @@ class tgtdataset(D.Dataset):
         del sst, hc
 
         tr_x = rearrange(tr_x, 'c b t h w -> b c w h t') #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
-        self.some_spaces = repeat(np.zeros_like(tr_x[0,:,:,:,0]), '1 b c d -> a b c d', a = 23)
 
         sstData_label = nc.Dataset(SSTFile_label)
         tr_y = sstData_label[labelName][:, :, 0, 0]
@@ -122,13 +121,14 @@ class tgtdataset(D.Dataset):
         self.tr_y = np.array(tr_y[:, :])
 
     def __len__(self):
-        return len(self.tr_x) - 1
+        return len(self.tr_x) - 4
 
     def __getitem__(self, idx):
-        x = self.tr_x[idx:idx+3, :, :, :, 0]
-        shifted_right = np.appned(self.tr_x[idx+1:idx+4, :, :, :, 0], self.some_spaces, axis=0)
+        x = self.tr_x[idx:idx+4, :, :, :, 0]
+        x = rearrange(x, 'a b c d -> b c d a')
+
         y = np.squeeze(self.tr_y[idx, :])
-        return x, shifted_right, y
+        return x, y
 
 @register_model
 class tdimdataset(D.Dataset):
