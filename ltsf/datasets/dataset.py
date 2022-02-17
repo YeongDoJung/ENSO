@@ -41,6 +41,38 @@ class basicdataset(D.Dataset):
         return x, y
 
 @register_model
+class dtom(D.Dataset):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName, current_epoch=None):
+        sstData =  nc.Dataset(SSTFile)
+        sst = sstData[sstName][:, :, :, :]
+        sst = np.expand_dims(sst, axis = 0)
+
+        hc = sstData[hcName][:, :, :, :]
+        hc = np.expand_dims(hc, axis = 0)
+        tr_x = np.append(sst, hc, axis = 0)
+        del sst, hc
+
+        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
+        tdim, _, _, _, _ = tr_x.shape
+
+        sstData_label = nc.Dataset(SSTFile_label)
+        tr_y = sstData_label[labelName][:, :, 0, 0]
+
+        self.tr_x = np.array(tr_x)
+        self.tr_y = np.array(tr_y[:, :])
+
+        self.ce = (current_epoch // 30)*1184 if current_epoch is not None else 0
+
+
+    def __len__(self):
+        return len(self.tr_x) // 30 if self.ce is not 0 else len(self.tr_x)
+
+    def __getitem__(self, idx):
+        x = self.tr_x[self.ce + idx] 
+        y = self.tr_y[self.ce + idx, :]
+        return x, y
+
+@register_model
 class tfdataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
@@ -204,7 +236,7 @@ class oisst2(D.Dataset):
         if mode == 'train':
             endoflist = 408 - input_month
         elif mode == 'valid':
-            endoflist = 444 - input_month
+            endoflist = (444 - 408) - input_month
         
         sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
         hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
@@ -220,20 +252,20 @@ class oisst2(D.Dataset):
 
         sst = rearrange(sst, 'a b c -> 1 a b c')
         sst = self.make_n_monthdata(sst, input_month)
-        sst = sst[:,:endoflist,:,:]    # sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
+        sst = sst[:,-endoflist:,:,:]    # sst = rearrange(sst[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
 
 
         hc = rearrange(hc, 'a b c -> 1 a b c')
         # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
         hc = self.make_n_monthdata(hc, input_month)
-        # hc = rearrange(hc[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
-        hc = hc[:,:endoflist,:,:]
+        # hc = rearrange(hc[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
+        hc = hc[:,-endoflist:,:,:]
 
-        # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+        # hc = np.expand_dims(hc[-endoflist:,:,:], axis = 0) #1, endoflist, 180, 360
         self.tr_x = np.append(sst, hc, axis = 0) # 6, 456, 180, 360
         self.tr_x = np.array(rearrange(self.tr_x, 'c b h w -> b c h w'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float32)
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[-endoflist:], dtype=np.float32)
 
         del sst, hc
 
@@ -275,19 +307,19 @@ class oisst3(D.Dataset):
         sst = rearrange(sst, 'a b c -> 1 a b c')
         # sst = np.stack((sst[0,:-2,:,:], sst[0,1:-1,:,:], sst[0,2:,:,:]), axis=0)
         sst = self.make_n_monthdata(sst, input_month)
-        sst = rearrange(sst[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
-        # sst = np.expand_dims(sst[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+        sst = rearrange(sst[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
+        # sst = np.expand_dims(sst[-endoflist:,:,:], axis = 0) #1, endoflist, 180, 360
 
         hc = rearrange(hc, 'a b c -> 1 a b c')
         # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
         hc = self.make_n_monthdata(hc, input_month)
-        hc = rearrange(hc[:,:endoflist,:,:], 'a b c d -> 1 b a c d')
+        hc = rearrange(hc[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
 
-        # hc = np.expand_dims(hc[:endoflist,:,:], axis = 0) #1, endoflist, 180, 360
+        # hc = np.expand_dims(hc[-endoflist:,:,:], axis = 0) #1, endoflist, 180, 360
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 405, 3, 180, 360
         self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[:endoflist], dtype=np.float32)
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[-endoflist:], dtype=np.float32)
 
     def make_n_monthdata(self, x, n):
         tmp = []

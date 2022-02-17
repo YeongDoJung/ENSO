@@ -78,6 +78,8 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
         trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {trainloss.avg:.4f}-{tl:.4f}')
 
+    vis.add_data_point(title = 'loss/train', data = trainloss.avg, pos = args.current_epoch)
+
     writer.add_scalar('loss/train', trainloss.avg, args.current_epoch)
 
     trainloss.reset()
@@ -116,6 +118,7 @@ def valid(args, model, valset, criterion, writer):
 
             testloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {valloss.avg:.4f}-{vl:.4f}')
 
+        vis.add_data_point(title = 'loss/valid', data = valloss.avg, pos = args.current_epoch)
         
         corr = np.zeros(23)
         for i in range(23):
@@ -144,6 +147,9 @@ def valid(args, model, valset, criterion, writer):
 
 
 if __name__ == "__main__":
+
+    vis = util.visualizer_visdom()
+
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=100)
@@ -188,30 +194,6 @@ if __name__ == "__main__":
     dataFolder = Path(str(Path(__file__).parent) + '/local/Dataset/') #"./"
     os.makedirs(f'{Folder}/fig/', exist_ok=True)
 
-    if args.data == 1:
-        SSTFile_train_sst = dataFolder / 'oisst' / 'finetuning' / 'sst.nc'
-        SSTFile_train_hc = dataFolder / 'oisst' / 'finetuning' / 'hc.nc'
-        SSTFile_test_sst = dataFolder / 'oisst' / 'test' / 'sst.nc'
-        SSTFile_test_hc = dataFolder / 'oisst' / 'test' / 'hc.nc'
-
-        trainset = dataset.__dict__[args.dataset](SSTFile_train_sst, SSTFile_train_hc, 'train')
-        valset = dataset.__dict__[args.dataset](SSTFile_test_sst, SSTFile_test_hc, 'valid')
-    elif args.data == 2:
-        SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
-        SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_integrated.npy'
-        SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
-        SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017_integrated.npy'
-
-        trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-        valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
-    elif args.data == 0:
-        SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
-        SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001.nc'
-        SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
-        SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
-
-        trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
-        valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
     # Dataset for training
 
     
@@ -231,6 +213,30 @@ if __name__ == "__main__":
     writer = SummaryWriter(f'{Folder}/eval_{args.current_epoch}')
 
     for epoch in range(args.numEpoch):
+        if args.data == 1:
+            SSTFile_train_sst = dataFolder / 'oisst' / 'finetuning' / 'sst.nc'
+            SSTFile_train_hc = dataFolder / 'oisst' / 'finetuning' / 'hc.nc'
+            SSTFile_test_sst = dataFolder / 'oisst' / 'test' / 'sst.nc'
+            SSTFile_test_hc = dataFolder / 'oisst' / 'test' / 'hc.nc'
+
+            trainset = dataset.__dict__[args.dataset](SSTFile_train_sst, SSTFile_train_hc, 'train')
+            valset = dataset.__dict__[args.dataset](SSTFile_test_sst, SSTFile_test_hc, 'valid')
+        elif args.data == 2:
+            SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
+            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_integrated.npy'
+            SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
+            SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017_integrated.npy'
+
+            trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr', args.current_epoch)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+            valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+        elif args.data == 0:
+            SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
+            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001.nc'
+            SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
+            SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
+
+            trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr')  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+            valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+import visdom
 import sys
 import matplotlib.pyplot as plt
 
@@ -45,3 +46,33 @@ def ploter(a, fp):
     plt.plot(timeline, a, marker='', color='blue', linewidth=1)
     plt.savefig(fp, orientation='landscape')
     plt.cla()
+
+class visualizer_visdom():
+    def __init__(self, env, port='7120'):
+        self.env = env
+        self.vis = visdom.Visdom(port=port)
+        env_list = self.vis.get_env_list()
+        try:
+            if self.env in env_list:
+                self.vis.delete_env(self.env)
+        except: pass
+        self.vis.env = self.env
+        self.vis_obj = {}
+    
+    def add_image(self, image, title, caption='A'):
+        self.vis.image(image, win=title, opts=dict(title=title, caption=caption, store_history=True))
+
+    def add_images(self, images, title, caption='A'):
+        self.vis.images(images, win=title, opts=dict(title=title, caption=caption))
+        
+    def add_data_point(self, data, pos, title):
+        pos = np.array([pos])
+        self.vis_obj[title] = title
+        if self.vis.win_exists(title,self.env):
+            self.vis.line(Y=data, X = pos, win=self.vis_obj[title], opts=dict(title=title), update='append')
+        else:
+            self.vis.line(Y=data, X = pos, win=self.vis_obj[title], opts=dict(title=title))
+
+if __name__ == "__main__":
+    
+    pass
