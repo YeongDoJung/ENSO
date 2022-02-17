@@ -1,8 +1,9 @@
+from timeit import repeat
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
 from pathlib import Path
-from einops import rearrange, reduce
+from einops import rearrange, reduce, repeat
 from timm.models.registry import register_model
 
 import torch
@@ -151,17 +152,15 @@ class tgtdataset(D.Dataset):
         self.tr_x = np.array(tr_x)
         self.tr_y = np.array(tr_y[:, :])
 
-    def _batchsize(self):
-        return self.tr_x.shape
-
     def __len__(self):
-        return len(self.tr_x) - 26
+        return len(self.tr_x) - 4
 
     def __getitem__(self, idx):
-        x = self.tr_x[idx:idx+3, :, :, :, 0]
-        shifted_right = self.tr_x[idx+1:idx+24, :, :, :, 0] 
+        x = self.tr_x[idx:idx+4, :, :, :, 0]
+        x = rearrange(x, 'a b c d -> b c d a')
+
         y = np.squeeze(self.tr_y[idx, :])
-        return x, shifted_right, y
+        return x, y
 
 @register_model
 class tdimdataset(D.Dataset):
