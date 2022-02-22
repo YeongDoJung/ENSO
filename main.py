@@ -147,9 +147,6 @@ def valid(args, model, valset, criterion, writer):
 
 
 if __name__ == "__main__":
-
-    vis = util.visualizer_visdom()
-
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=100)
@@ -164,6 +161,8 @@ if __name__ == "__main__":
     parser.add_argument("--val_min", type=float, default=9999)
     parser.add_argument("--current_epoch", type=int, default=0)
     args = parser.parse_args()
+
+    vis = util.visualizer_visdom(env = args.name)
 
     GPU_NUM = args.gpu
     device = torch.device('cuda:{}'.format(GPU_NUM) if torch.cuda.is_available() else 'cpu')
@@ -227,7 +226,7 @@ if __name__ == "__main__":
             SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
             SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017_integrated.npy'
 
-            trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr', args.current_epoch)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
+            trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr', currnet_epoch = args.current_epoch)  #datasets_general_3D_alllead_add(SSTFile_train, SSTFile_train_label, SSTFile_train2, SSTFile_train_label2, lead, sstName='sst', hcName='t300', labelName='pr', noise = True) 
             valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
         elif args.data == 0:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'

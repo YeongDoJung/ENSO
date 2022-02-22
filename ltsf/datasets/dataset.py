@@ -64,7 +64,6 @@ class dtom(D.Dataset):
 
         self.ce = (current_epoch // 30)*1184 if current_epoch is not None else 0
 
-
     def __len__(self):
         return len(self.tr_x) // 30 if self.ce is not 0 else len(self.tr_x)
 
