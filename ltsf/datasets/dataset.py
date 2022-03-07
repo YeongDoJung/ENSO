@@ -44,9 +44,11 @@ class basicdataset(D.Dataset):
 @register_model
 class dtom(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
-        self.tr_x = np.load(SSTFile)
+        with open(SSTFile, 'rb') as f:
+            self.tr_x = np.load(f).astype(np.float32)
 
-        self.tr_y = np.load(SSTFile_label)[:, :, 0, 0]
+        with open(SSTFile_label, 'rb') as f:
+            self.tr_y = np.load(f).astype(np.float32)
 
     def __len__(self):
         return len(self.tr_x)
@@ -56,19 +58,27 @@ class dtom(D.Dataset):
         y = self.tr_y[idx, :]
         return x, y
 
+
 @register_model
 class dtom_2d(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
-        self.tr_x = np.load(SSTFile)
+        with open(SSTFile, 'rb') as f:
+            tr_x = np.load(f).astype(np.float32)
 
-        self.tr_y = np.load(SSTFile_label)[:, :, 0, 0]
-        tr_x = rearrange(tr_x, 'a b c d e -> b (a c) d e')
+        with open(SSTFile_label, 'rb') as f:
+            tr_y = np.load(f).astype(np.float32)
+
+        print(tr_x.shape, tr_y.shape)
+
+        self.tr_x = rearrange(tr_x, 'a b c d e -> a (b c) d e')
+        self.tr_y = tr_y
+        print(self.tr_x.shape, self.tr_y.shape)
 
     def __len__(self):
         return len(self.tr_x)
 
     def __getitem__(self, idx):
-        x = self.tr_x[idx] 
+        x = self.tr_x[idx, :, :, :] 
         y = self.tr_y[idx, :]
         return x, y
 

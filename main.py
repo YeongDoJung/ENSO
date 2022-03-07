@@ -86,7 +86,9 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
 
 
+
 def valid(args, model, valset, criterion, writer):
+
     testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset))
     valloss = metric.AverageMeter()
     model.eval()
@@ -236,7 +238,7 @@ if __name__ == "__main__":
             SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
 
             trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr') 
-            valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+            valset = dataset.__dict__['tdimdataset'](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
         elif args.data == 0:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
@@ -249,6 +251,7 @@ if __name__ == "__main__":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+        print(trainset.__len__())
         train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
         c = valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         corr_list.append(c)
