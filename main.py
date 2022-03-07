@@ -86,7 +86,9 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
 
 
+
 def valid(args, model, valset, criterion, writer):
+
     testloader = tqdm.tqdm(DataLoader(valset, batch_size=1, shuffle=False, drop_last=False), total=len(valset))
     valloss = metric.AverageMeter()
     model.eval()
@@ -130,12 +132,12 @@ def valid(args, model, valset, criterion, writer):
         util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png')
 
     if (valloss.avg) < args.valloss_best : 
-        args.valloss_best = np.mean(corr)
+        args.valloss_best = valloss.avg
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
         torch.save(model.state_dict(), f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}.pth')
-        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_acc_{mse:.4f}_corr.csv', corr)
-        print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, corr))
-        writer.add_scalar('corr/test', np.mean(corr), args.current_epoch)
+        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_mse_{mse:.4f}_corr.csv', corr)
+        print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, np.mean(corr)))
+        writer.add_scalar('corr/test', valloss.avg, args.current_epoch)
         writer.flush()
     writer.close()
 
@@ -200,7 +202,7 @@ if __name__ == "__main__":
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')
-    criterion = metric.weightedMSE()
+    criterion = metric.corrcoefloss()
     val_crit = nn.MSELoss()
 
     corr_list = []
@@ -230,13 +232,13 @@ if __name__ == "__main__":
             trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr', currnet_epoch = args.current_epoch)  
             valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
         elif args.data == 3:
-            SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001_mean.nc'
-            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_mean.nc'
+            SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001_mean.npy'
+            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_mean.npy'
             SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
             SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
 
             trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr') 
-            valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+            valset = dataset.__dict__['basicdataset'](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
 
         elif args.data == 0:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
@@ -249,6 +251,7 @@ if __name__ == "__main__":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
+        print(trainset.__len__())
         train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
         c = valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         corr_list.append(c)

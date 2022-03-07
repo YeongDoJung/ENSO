@@ -44,22 +44,13 @@ class basicdataset(D.Dataset):
 @register_model
 class dtom(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
-        sstData =  nc.Dataset(SSTFile)
-        sst = sstData[sstName][:, :, :, :]
-        sst = np.expand_dims(sst, axis = 0)
+        with open(SSTFile, 'rb') as f:
+            self.tr_x = np.load(f).astype(np.float32)
+        self.tr_x = rearrange(self.tr_x, 'a b c d e -> a b e d c')  #(2961, 2, 3, 24, 72) -> (2961, 2, 72, 24, 3)
+        
 
-        hc = sstData[hcName][:, :, :, :]
-        hc = np.expand_dims(hc, axis = 0)
-        tr_x = np.append(sst, hc, axis = 0)
-        del sst, hc
-
-        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 2961, 3, 24, 72) -> (2961, 2, 72, 24, 3)
-
-        sstData_label = nc.Dataset(SSTFile_label)
-        tr_y = sstData_label[labelName][:, :, 0, 0]
-
-        self.tr_x = np.array(tr_x)
-        self.tr_y = np.array(tr_y[:, :])
+        with open(SSTFile_label, 'rb') as f:
+            self.tr_y = np.load(f).astype(np.float32)
 
     def __len__(self):
         return len(self.tr_x)
@@ -69,32 +60,27 @@ class dtom(D.Dataset):
         y = self.tr_y[idx, :]
         return x, y
 
+
 @register_model
 class dtom_2d(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
-        sstData =  nc.Dataset(SSTFile)
-        sst = sstData[sstName][:, :, :, :]
-        sst = np.expand_dims(sst, axis = 0)
+        with open(SSTFile, 'rb') as f:
+            tr_x = np.load(f).astype(np.float32)
 
-        hc = sstData[hcName][:, :, :, :]
-        hc = np.expand_dims(hc, axis = 0)
-        tr_x = np.append(sst, hc, axis = 0)
-        del sst, hc
+        with open(SSTFile_label, 'rb') as f:
+            tr_y = np.load(f).astype(np.float32)
 
-        # tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 2961, 3, 24, 72) -> (2961, 2, 72, 24, 3)
-        tr_x = rearrange(tr_x, 'a b c d e -> b (a c) d e')
+        print(tr_x.shape, tr_y.shape)
 
-        sstData_label = nc.Dataset(SSTFile_label)
-        tr_y = sstData_label[labelName][:, :, 0, 0]
-
-        self.tr_x = np.array(tr_x)
-        self.tr_y = np.array(tr_y[:, :])
+        self.tr_x = rearrange(tr_x, 'a b c d e -> a (b c) d e')
+        self.tr_y = tr_y
+        print(self.tr_x.shape, self.tr_y.shape)
 
     def __len__(self):
         return len(self.tr_x)
 
     def __getitem__(self, idx):
-        x = self.tr_x[idx] 
+        x = self.tr_x[idx, :, :, :] 
         y = self.tr_y[idx, :]
         return x, y
 

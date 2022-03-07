@@ -130,7 +130,7 @@ class Model3D(nn.Module):
         
 
         self.layers = 2
-        self.decode_lengths = 26
+        self.decode_lengths = 23
         # init_dim = encoder_dim
         self.decode_steps = nn.ModuleList()
         self.init_hs = nn.ModuleList()
