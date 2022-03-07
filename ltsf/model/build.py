@@ -44,7 +44,11 @@ def res_encs():
     return res_encoder.res_enc()
 
 @register_model
-def get_vit(image_size=(360,180), patch_size=(20,10), num_classes=23, dim=1024, depth=12, heads=12, mlp_dim=2048, channels=6, dim_head=1024):
+def oisst_vit(image_size=(360,180), patch_size=(20,10), num_classes=23, dim=1024, depth=12, heads=12, mlp_dim=2048, channels=6, dim_head=1024):
+    return vit.ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim, channels=channels, dim_head=dim_head)
+
+@register_model
+def cmip_vit(image_size=(72,24), patch_size=(4,2), num_classes=23, dim=1024, depth=12, heads=12, mlp_dim=2048, channels=6, dim_head=1024):
     return vit.ViT(image_size=image_size, patch_size=patch_size, num_classes=num_classes, dim=dim, depth=depth, heads=heads, mlp_dim=mlp_dim, channels=channels, dim_head=dim_head)
 
 @register_model

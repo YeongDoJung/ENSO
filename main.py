@@ -231,9 +231,9 @@ if __name__ == "__main__":
             valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
         elif args.data == 3:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001_mean.nc'
-            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_integrated.npy'
+            SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_mean.nc'
             SSTFile_val = dataFolder / 'Ham' / 'godas.input.1980_2017.nc'
-            SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017_integrated.npy'
+            SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
 
             trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr') 
             valset = dataset.__dict__[args.dataset](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
