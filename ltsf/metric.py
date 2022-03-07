@@ -94,6 +94,16 @@ class weightedMSE(nn.Module):
         werr = torch.mean(a * err**2)
         return werr
 
+class twoloss(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self,x,y):
+        device = x.device
+        a = PearsonLoss_old(x, y)
+        b = mse(x, y)
+        return 0.5*a + 0.5*b
+
 def pearson(x, y):
     ns = 1e-4
     dv = 0
