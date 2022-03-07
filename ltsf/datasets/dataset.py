@@ -43,7 +43,7 @@ class basicdataset(D.Dataset):
 
 @register_model
 class dtom(D.Dataset):
-    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName, current_epoch=None):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
         sst = sstData[sstName][:, :, :, :]
         sst = np.expand_dims(sst, axis = 0)
@@ -53,8 +53,7 @@ class dtom(D.Dataset):
         tr_x = np.append(sst, hc, axis = 0)
         del sst, hc
 
-        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 35532, 3, 24, 72) -> (35532, 2, 72, 24, 3)
-        tdim, _, _, _, _ = tr_x.shape
+        tr_x = np.transpose(tr_x, (1, 0, 4, 3, 2)) #(2, 2961, 3, 24, 72) -> (2961, 2, 72, 24, 3)
 
         sstData_label = nc.Dataset(SSTFile_label)
         tr_y = sstData_label[labelName][:, :, 0, 0]
@@ -62,14 +61,12 @@ class dtom(D.Dataset):
         self.tr_x = np.array(tr_x)
         self.tr_y = np.array(tr_y[:, :])
 
-        self.ce = (current_epoch // 30)*1184 if current_epoch is not None else 0
-
     def __len__(self):
-        return len(self.tr_x) // 30 if self.ce is not 0 else len(self.tr_x)
+        return len(self.tr_x)
 
     def __getitem__(self, idx):
-        x = self.tr_x[self.ce + idx] 
-        y = self.tr_y[self.ce + idx, :]
+        x = self.tr_x[idx] 
+        y = self.tr_y[idx, :]
         return x, y
 
 @register_model
