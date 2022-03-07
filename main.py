@@ -130,12 +130,12 @@ def valid(args, model, valset, criterion, writer):
         util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png')
 
     if (valloss.avg) < args.valloss_best : 
-        args.valloss_best = np.mean(corr)
+        args.valloss_best = valloss.avg
         os.makedirs(f'{Folder}/eval_{args.current_epoch}/', exist_ok=True)
         torch.save(model.state_dict(), f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}.pth')
-        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_acc_{mse:.4f}_corr.csv', corr)
-        print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, corr))
-        writer.add_scalar('corr/test', np.mean(corr), args.current_epoch)
+        np.savetxt(f'{Folder}/eval_{args.current_epoch}/eval_{args.current_epoch}_mse_{mse:.4f}_corr.csv', corr)
+        print('[{}/{} , mean corr : {}'.format(args.current_epoch, args.numEpoch, np.mean(corr)))
+        writer.add_scalar('corr/test', valloss.avg, args.current_epoch)
         writer.flush()
     writer.close()
 
