@@ -1,10 +1,11 @@
+from distutils.command import build
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
-from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io
+from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn
 
 __all__ = ['Model_2D',
 'encoders',
@@ -103,3 +104,16 @@ def perceiver(num_freq_bands=None,
     return perceiver_pytorch.Perceiver(num_freq_bands = num_freq_bands, max_freq=max_freq, depth=depth, input_channels=input_channels, input_axis=input_axis, num_latents=num_latents, latent_dim=latent_dim, 
                                     cross_heads=cross_heads, latent_heads=latent_heads, cross_dim_head=cross_dim_head, latent_dim_head=latent_dim_head, num_classes=num_classes, attn_dropout=attn_dropout, ff_dropout=ff_dropout, 
                                     weight_tie_layers=weight_tie_layers, fourier_encode_data=fourier_encode_data, self_per_cross_attn=self_per_cross_attn, final_classifier_head=final_classifier_head)
+
+@register_model
+def memorynn():
+    return memnn.MemNN(hidden_size=10, output_size=23, num_layers=2, memory_size=80, time_step=50)
+
+@register_model
+class EVLmodel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = encoders()
+        
+        
+    def evdiscriminator(self, y):

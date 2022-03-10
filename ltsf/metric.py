@@ -2,8 +2,9 @@ import sys
 from einops import rearrange
 
 import numpy as np
-import torch.nn as nn
 import torch
+import torch.nn as nn
+import torch.functional as F
 
 from .util import stdout
 from sklearn.metrics import mean_squared_error
@@ -144,6 +145,24 @@ class mse(nn.Module):
     def forward(self, pr, gt):
         return mean_squared_error(pr, gt, multioutput='raw_values')
 
+# Generalized Extreme Value Loss (Frechet GEVL + Gumbel GEVL)
+def FrechetGEVL(pred, target, a=13, s=1.7):
+    temp = torch.abs(pred - target) / s + np.power(a / (1 + a), 1 / a)
+    return ((temp ** -a) + (1 + a) * torch.log(temp)).mean()
+
+def GumbelGEVL(pred, target, r=1.1):
+    return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), r) * torch.pow(pred - target, 2)).mean()
+
+
+
+# Dynamic Shift (Extreme Value Loss + MemNN)
+def ExtremeValueLoss(pred, target, proportion, r=1):
+    # pred (batch_size, 3)      : left extreme, normal, right extreme 확률을 나타내는 3차원 신경망 출력
+    # target (batch_size, 3)    : left extreme, normal, right extreme 중 하나를 나타내는 one-hot 벡터
+    # proportion (3,)           : 순서대로 left extreme, normal, right extreme의 표본 개수를 담고 있는 3차원 벡터
+    
+    proportion = torch.from_numpy(proportion / np.sum(proportion)).cuda()
+    return -((1 - proportion) * (torch.pow(1 - pred / r, r) * target * torch.log(pred + 1e-6) + torch.pow(1 - (1 - pred) / r, r) * (1 - target) * torch.log(1 - pred + 1e-6))).mean()
 
 if __name__ == '__main__':
     a = torch.rand(430, 23)
