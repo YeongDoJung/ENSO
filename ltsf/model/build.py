@@ -114,6 +114,7 @@ class EVLmodel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.model = encoders()
-        
+
         
     def evdiscriminator(self, y):
+        pass

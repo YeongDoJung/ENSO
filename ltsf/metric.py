@@ -2,6 +2,7 @@ import sys
 from einops import rearrange
 
 import numpy as np
+from sklearn import metrics
 import torch
 import torch.nn as nn
 import torch.functional as F
@@ -153,8 +154,6 @@ def FrechetGEVL(pred, target, a=13, s=1.7):
 def GumbelGEVL(pred, target, r=1.1):
     return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), r) * torch.pow(pred - target, 2)).mean()
 
-
-
 # Dynamic Shift (Extreme Value Loss + MemNN)
 def ExtremeValueLoss(pred, target, proportion, r=1):
     # pred (batch_size, 3)      : left extreme, normal, right extreme 확률을 나타내는 3차원 신경망 출력
@@ -163,6 +162,24 @@ def ExtremeValueLoss(pred, target, proportion, r=1):
     
     proportion = torch.from_numpy(proportion / np.sum(proportion)).cuda()
     return -((1 - proportion) * (torch.pow(1 - pred / r, r) * target * torch.log(pred + 1e-6) + torch.pow(1 - (1 - pred) / r, r) * (1 - target) * torch.log(1 - pred + 1e-6))).mean()
+
+class FGELV(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.a = 13
+        self.s = 1.7
+
+    def forward(self, pred, target):
+        temp = torch.abs(pred - target) / self.s + np.power(self.a / (1 + self.a), 1 / self.a)
+        return ((temp ** -self.a) + (1 + self.a) * torch.log(temp)).mean()
+
+
+class GGELV(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.r = 1.1
+    def forward(self, pred, target):
+        return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), self.r) * torch.pow(pred - target, 2)).mean()
 
 if __name__ == '__main__':
     a = torch.rand(430, 23)
