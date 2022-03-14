@@ -251,7 +251,6 @@ if __name__ == "__main__":
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-        print(trainset.__len__())
         train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
         c = valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
         corr_list.append(c)

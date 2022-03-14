@@ -5,6 +5,8 @@ import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
+from repo.ltsf.model import oisst_enc
+
 from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn
 
 __all__ = ['Model_2D',
@@ -27,6 +29,10 @@ def Model_2D():
 @register_model
 def encoders(in_channel=2, out_channel=16):
     return mdl.RFB_Transformer(in_channel, out_channel)
+
+@register_model
+def oisst_encoder(in_channel=2, out_channel=16):
+    return oisst_enc.RFB_Transformer(in_channel, out_channel)
 
 @register_model
 def Transformer():
