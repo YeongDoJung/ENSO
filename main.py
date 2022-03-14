@@ -201,8 +201,13 @@ if __name__ == "__main__":
     model = build.__dict__[args.model]().to(device=device)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
+<<<<<<< HEAD
     # criterion = nn.MSELoss(reduction='mean')
     criterion = metric.corrcoefloss()
+=======
+    criterion = nn.MSELoss(reduction='mean')
+    # criterion = metric.GGELV()
+>>>>>>> e28af2e18c41aa0e261619b9531355c1b1fad9c3
     val_crit = nn.MSELoss()
 
     corr_list = []
@@ -238,7 +243,11 @@ if __name__ == "__main__":
             SSTFile_val_label = dataFolder / 'Ham' / 'godas.label.1980_2017.nc'
 
             trainset = dataset.__dict__[args.dataset](SSTFile_train, SSTFile_train_label, sstName='sst', hcName='t300', labelName='pr') 
+<<<<<<< HEAD
             valset = dataset.__dict__['basicdataset'](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+=======
+            valset = dataset.__dict__['tdimdataset'](SSTFile_val, SSTFile_val_label, sstName='sst', hcName='t300', labelName='pr')
+>>>>>>> e28af2e18c41aa0e261619b9531355c1b1fad9c3
 
         elif args.data == 0:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'

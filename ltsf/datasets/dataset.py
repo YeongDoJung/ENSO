@@ -46,8 +46,11 @@ class dtom(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         with open(SSTFile, 'rb') as f:
             self.tr_x = np.load(f).astype(np.float32)
+<<<<<<< HEAD
         self.tr_x = rearrange(self.tr_x, 'a b c d e -> a b e d c')  #(2961, 2, 3, 24, 72) -> (2961, 2, 72, 24, 3)
         
+=======
+>>>>>>> e28af2e18c41aa0e261619b9531355c1b1fad9c3
 
         with open(SSTFile_label, 'rb') as f:
             self.tr_y = np.load(f).astype(np.float32)
@@ -66,12 +69,21 @@ class dtom_2d(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         with open(SSTFile, 'rb') as f:
             tr_x = np.load(f).astype(np.float32)
+<<<<<<< HEAD
 
         with open(SSTFile_label, 'rb') as f:
             tr_y = np.load(f).astype(np.float32)
 
         print(tr_x.shape, tr_y.shape)
 
+=======
+
+        with open(SSTFile_label, 'rb') as f:
+            tr_y = np.load(f).astype(np.float32)
+
+        print(tr_x.shape, tr_y.shape)
+
+>>>>>>> e28af2e18c41aa0e261619b9531355c1b1fad9c3
         self.tr_x = rearrange(tr_x, 'a b c d e -> a (b c) d e')
         self.tr_y = tr_y
         print(self.tr_x.shape, self.tr_y.shape)
