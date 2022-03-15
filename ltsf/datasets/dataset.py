@@ -312,29 +312,23 @@ class oisst3(D.Dataset):
         hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
         hc = (hc - hc.max()) / (hc.max() - hc.min())
 
-
-
         sst = rearrange(sst, 'a b c -> 1 a b c')
-        # sst = np.stack((sst[0,:-2,:,:], sst[0,1:-1,:,:], sst[0,2:,:,:]), axis=0)
-        sst = self.make_n_monthdata(sst, input_month)
-        sst = rearrange(sst[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
-        # sst = np.expand_dims(sst[-endoflist:,:,:], axis = 0) #1, endoflist, 180, 360
+        sst = self.make_n_monthdata(sst, input_month, endoflist)
+        sst = rearrange(sst, 'a b c d -> 1 b a c d')
 
         hc = rearrange(hc, 'a b c -> 1 a b c')
-        # hc = np.stack((hc[0,:-2,:,:], hc[0,1:-1,:,:], hc[0,2:,:,:]), axis=0)
-        hc = self.make_n_monthdata(hc, input_month)
-        hc = rearrange(hc[:,-endoflist:,:,:], 'a b c d -> 1 b a c d')
+        hc = self.make_n_monthdata(hc, input_month, endoflist)
+        hc = rearrange(hc, 'a b c d -> 1 b a c d')
 
-        # hc = np.expand_dims(hc[-endoflist:,:,:], axis = 0) #1, endoflist, 180, 360
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 405, 3, 180, 360
         self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[-endoflist:], dtype=np.float32)
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
 
-    def make_n_monthdata(self, x, n):
+    def make_n_monthdata(self, x, n, endoflist):
         tmp = []
         for i in range(n):
-            tmp.append(x[0, i:-(n-i)])
+            tmp.append(x[0, 0+i:0+i+endoflist, :, :])
         return np.stack(tmp, axis=0)
 
     def __len__(self):

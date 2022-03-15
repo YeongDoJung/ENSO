@@ -5,9 +5,7 @@ import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
-from repo.ltsf.model import oisst_enc
-
-from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn
+from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm
 
 __all__ = ['Model_2D',
 'encoders',
@@ -41,6 +39,10 @@ def Transformer():
 @register_model
 def Model_3D():
     return trdcnn.Model3D(2,16,256)
+
+@register_model
+def oisst_Model_3D():
+    return oisst_lstm.Model3D(2,16,256)
 
 @register_model
 def res_trf():

@@ -10,19 +10,20 @@ import sys
 sys.path.append('.')
 
 class RFB_Transformer(nn.Module):
-    def __init__(self, in_channels, out_channels, decoder = True, num_classes = 23, dim = 64, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024):
+    def __init__(self, in_channels, out_channels, decoder = True, num_classes = 23, dim = 128, depth = 24, heads = 16, dim_head = 64, mlp_dim = 1024):
         super(RFB_Transformer, self).__init__()
 
         self.rfb1 = RFB(in_channels, out_channels)
         self.rfb2 = RFB(out_channels, out_channels*2)
-        self.rfb3 = RFB(out_channels*2, out_channels*4) # (n, 64, 9, 3, 3)
+        self.rfb3 = RFB(out_channels*2, out_channels*4) 
+        self.rfb4 = RFB(out_channels*4, out_channels*8) 
 
         self.decoder = decoder
 
         # if decoder == True:
         #     self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
         # else :
-        self.transformer = ViT(num_classes = 23, num_classes=num_classes, dim = dim, depth = depth, heads = heads, dim_head = dim_head, mlp_dim = mlp_dim)
+        self.transformer = ViT(num_classes = num_classes, dim = dim, depth = depth, heads = heads, dim_head = dim_head, mlp_dim = mlp_dim)
         # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
 
         self.dense_1 = nn.Linear(64, 1)
@@ -34,7 +35,7 @@ class RFB_Transformer(nn.Module):
 
         self.arr1 = Rearrange('n f c w h -> n (c w h) f')
 
-        self.PE = nn.Parameter(torch.rand(1, 2970, 64))
+        self.PE = nn.Parameter(torch.rand(1, 726, 128))
 
     def forward(self, x) :
         b = x.shape[0]
@@ -50,6 +51,11 @@ class RFB_Transformer(nn.Module):
         out = self.maxpool(out)
         
         out = self.rfb3(out)
+        out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        out = self.gelu(out)
+        out = self.maxpool(out)
+
+        out = self.rfb4(out)
         out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
         out = self.gelu(out)
         out = self.maxpool(out)

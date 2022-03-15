@@ -158,7 +158,7 @@ if __name__ == "__main__":
     parser.add_argument('--data', type=int, default=0)
     parser.add_argument('--model', type=str, default='')
     parser.add_argument('--dataset', type=str, default='')
-
+    parser.add_argument('--crit', type=str, default='')
 
     parser.add_argument("--val_min", type=float, default=9999)
     parser.add_argument("--current_epoch", type=int, default=0)
