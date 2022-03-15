@@ -326,11 +326,11 @@ class oisst3(D.Dataset):
         self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
 
         if self.mode == 'train':
-            self.tr_x = self.tr_x[353:,:,:,:,:]
-            self.tr_y = self.tr_y[353:,:,:,:,:]
+            self.tr_x = self.tr_x[:353,:,:,:,:]
+            self.tr_y = self.tr_y[:353]
         elif self.mode == 'valid':
-            self.tr_x = self.tr_x[:-88:,:,:,:,:]
-            self.tr_y = self.tr_y[:-88:,:,:,:,:]
+            self.tr_x = self.tr_x[353:441:,:,:,:,:]
+            self.tr_y = self.tr_y[353:441:]
 
 
     def make_n_monthdata(self, x, n, endoflist):
@@ -340,8 +340,7 @@ class oisst3(D.Dataset):
         return np.stack(tmp, axis=0)
 
     def __len__(self):
-        tmp = len(self.tr_x) - 23
-        return int(tmp*0.8) if self.mode == 'train' else tmp
+        return len(self.tr_x) - 23
 
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
