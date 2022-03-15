@@ -296,9 +296,10 @@ class oisst2(D.Dataset):
 @register_model
 class oisst3(D.Dataset):
     def __init__(self, sst_fp, hc_fp, mode, input_month = 3):
-        if mode == 'train':
+        self.mode = mode
+        if self.mode == 'train':
             endoflist = 408 - input_month
-        elif mode == 'valid':
+        elif self.mode == 'valid':
             endoflist = 444 - input_month
         
         sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
@@ -321,9 +322,16 @@ class oisst3(D.Dataset):
         hc = rearrange(hc, 'a b c d -> 1 b a c d')
 
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 405, 3, 180, 360
-        self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32)
-
+        self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32) # eol, 2, 360, 180, 3
         self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
+
+        if self.mode == 'train':
+            self.tr_x = self.tr_x[353:,:,:,:,:]
+            self.tr_y = self.tr_y[353:,:,:,:,:]
+        elif self.mode == 'valid':
+            self.tr_x = self.tr_x[:-88:,:,:,:,:]
+            self.tr_y = self.tr_y[:-88:,:,:,:,:]
+
 
     def make_n_monthdata(self, x, n, endoflist):
         tmp = []
@@ -332,9 +340,11 @@ class oisst3(D.Dataset):
         return np.stack(tmp, axis=0)
 
     def __len__(self):
-        return len(self.tr_x) - 23
+        tmp = len(self.tr_x) - 23
+        return int(tmp*0.8) if self.mode == 'train' else tmp
 
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx:idx+23]
         return x, y
+
