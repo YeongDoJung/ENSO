@@ -125,7 +125,7 @@ class Model3D(nn.Module):
         self.rfb4 = RFB(out_channels*4, out_channels*8)
 
         # Regression
-        encoder_dim = out_channels*4
+        encoder_dim = out_channels*8
         decoder_dim = num_layer
         attention_dim = num_layer
         
