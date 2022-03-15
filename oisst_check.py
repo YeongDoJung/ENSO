@@ -154,6 +154,11 @@ if __name__ == '__main__':
                     'oisst_transformer_GumbelGELV' :'local/oisst_trf_gumbel/eval_16/eval_16.pth',
                     'oisst_transformer_WeightedMSE' : 'local/oisst_trf_weightedmse/eval_19/eval_19.pth'}
 
+    oisst_lstm_fp = {'oisst_lstm_mse' : 'local/oisst_lstm_mse_rfb4/eval_211/eval_211.pth',
+                    'oisst_lstm_FrechetGELV' : '/local/oisst_lstm_Frechet_rfb4/eval_24/eval_24.pth',
+                    'oisst_lstm_GumbelGELV' :'local/oisst_lstm_gumbel_rfb4/eval_260/eval_260.pth',
+                    'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_weightedmse_rfb4/eval_0/eval_0.pth'}
+
     tmp = {}
 
     mses, corrs = [], []
