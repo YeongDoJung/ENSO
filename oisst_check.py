@@ -48,7 +48,7 @@ def plotresult(fp):
 
     # Dataset for training
     valset = oisst3(SSTFile_val, HCFile_val, 'valid')
-    batch_size = len(valset) // 1                             # batch size
+    batch_size = 1 # len(valset) // 1                             # batch size
     testloader = DataLoader(valset, batch_size = batch_size, shuffle=False)
 
     assemble_real_nino = np.zeros((len(valset), 23))
@@ -96,7 +96,7 @@ def plotresult(fp):
 
     print(corr)
 
-    np.savetxt(f'{Folder}{dd}/correlation.csv',corr,delimiter=",")
+    np.savetxt(f'{Folder}/{dd}/correlation.csv',corr,delimiter=",")
 
     # print(assemble_pred_nino)
     np.save(f"{Folder}{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
