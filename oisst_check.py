@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from ltsf.model import build
-from ltsf.datasets.dataset import basicdataset, tdimdataset, tfdataset, tgtdataset, oisst2
+from ltsf.datasets.dataset import basicdataset, tdimdataset, tfdataset, tgtdataset, oisst2, oisst3
 from ltsf.metric import CorrelationSkill
 import easydict
 import csv
@@ -21,22 +21,20 @@ import pandas as pd
 
 from sklearn.metrics import accuracy_score, mean_squared_error
 
-
-def plotresult(fp, num):
-
-
+def plotresult(fp):
     # np.random.seed(0)
     # random.seed(0)
     # torch.manual_seed(0)
 
     # Arguments
     args = easydict.EasyDict({
-        "gpu": 3,
+        "gpu": 1,
     })
 
-    # Directories
-    # Dataset for pretrain
-    Folder = fp
+    a = fp.split('/')
+    dd = str(a[-1])[0:-4] #eval_nnn.pth
+
+    Folder = a[0] + '/' + a[1]
     dataFolder = "./local/Dataset/oisst" #"./""./"
 
     SSTFile_val = dataFolder+'/test/sst.nc'
@@ -46,36 +44,18 @@ def plotresult(fp, num):
     torch.cuda.set_device(device) # change allocation of current GPU
     print ('Current cuda device ', torch.cuda.current_device()) # check
 
-    # Set Hyper-parameters
-    regularizer_rate = 0.00001  #L2 regularization
-    numEpoch =  100              # No. Epoch
-    learning_rate = 0.0001      # Initial Learning Rate
-    n_cycles = 4                # No. cycles in Cosine Annealing
-    epochs_per_cycle = math.floor(numEpoch / n_cycles)  # No. epochs for each cycle
-
-    dr = 0.0                   # Dropout rate for Bayesian learning
-    tau = 1.0                   # Weight for the batch size in regularization weight calculation (Bayesian learning)
-    lengthscale = 1e-2          # Default regularization weight (L2)
-    noF = 16                    # Initial No. filters
-    num_layer = 256             # Feature size of 1st fully-connected layer
-    num_answer = 2              # No. answers(3=3.4/ep/cp)
-
-    dd = 'eval_' + num
+    # eg) local\oisst_trf_mse\eval_188\eval_188.pth
 
     # Dataset for training
-    valset = oisst2(SSTFile_val, HCFile_val, 'valid')
-    batch_size = len(valset) // 1                             # batch size
-    reg = lengthscale**2 * (1 - dr) / (2. * batch_size * tau) # L2 regularization weight for Bayesian learning
+    valset = oisst3(SSTFile_val, HCFile_val, 'valid')
+    batch_size = 1 # len(valset) // 1                             # batch size
     testloader = DataLoader(valset, batch_size = batch_size, shuffle=False)
-
-    test_step = len(testloader)
 
     assemble_real_nino = np.zeros((len(valset), 23))
     assemble_pred_nino = np.zeros((len(valset), 23))
 
-    model = build.pyramid().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate, weight_decay=regularizer_rate, betas=(0.9, 0.999))
-    model.load_state_dict(torch.load(f'{Folder}{dd}/{dd}.pth', map_location=device))
+    model = build.oisst_encoder().to(device)
+    model.load_state_dict(torch.load(f'{Folder}/{dd}/{dd}.pth', map_location=device))
     model.eval()
     
     bayesianIter = 1
@@ -110,50 +90,43 @@ def plotresult(fp, num):
         timeValues = np.arange(0, inputTimeSeq)
         plt.plot(timeValues, assemble_real_nino[:, i], marker='', color='blue', linewidth=1, label="Measurement")
         plt.plot(timeValues, assemble_pred_nino[:, i], marker='', color='red', linewidth=1, linestyle='dashed', label="Prediction")
-        plt.savefig(Folder + f"{dd}/NinoPred_" + str(i).zfill(6) + ".png", orientation='landscape', bbox_inches='tight')
+        plt.savefig(Folder + f"/{dd}/NinoPred_" + str(i).zfill(6) + ".png", orientation='landscape', bbox_inches='tight')
         plt.show()
         plt.close()
 
     print(corr)
 
-    np.savetxt(f'{Folder}{dd}/correlation.csv',corr,delimiter=",")
+    np.savetxt(f'{Folder}/{dd}/correlation.csv',corr,delimiter=",")
 
     # print(assemble_pred_nino)
-    np.save(f"{Folder}{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
-    np.save(f"{Folder}{dd}/lead_assemble_pred_nino", assemble_pred_nino)
+    np.save(f"{Folder}/{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
+    np.save(f"{Folder}/{dd}/lead_assemble_pred_nino", assemble_pred_nino)
 
     return mse, corr
 
-def compare(mse, corr, fp, num, label):
+def compare(mse, *corrs, fp, num, label):
     aa = fp + 'eval_' + num
-
-    baseline_mse, trans_mse, twodimmse, twolossmse = getmse()
-    baseline, trans, twodim, twoloss, corrloss = getcorr()
-
     timeline = np.linspace(0, 22, 1)
 
-    axes = plt.axes()
-    axes.set_ylim([0,1])
-    plt.plot(timeline, np.sqrt(baseline_mse), marker='', color='blue', linewidth=1, label="baseline")
-    plt.plot(timeline, np.sqrt(trans_mse), marker='', color='red', linewidth=1, label="rfb_transformer")
-    # plt.plot(timeline, np.sqrt(twolossmse), marker='', color='green', linewidth=1, label="vit_twoloss")
-    plt.plot(timeline, np.sqrt(mse), marker='', color='purple', linewidth=1, label=label)
-    plt.legend()
+    # plt.plot(timeline, np.sqrt(baseline_mse), marker='', color='blue', linewidth=1, label="baseline")
+    # plt.plot(timeline, np.sqrt(trans_mse), marker='', color='red', linewidth=1, label="rfb_transformer")
+    # # plt.plot(timeline, np.sqrt(twolossmse), marker='', color='green', linewidth=1, label="vit_twoloss")
+    # plt.plot(timeline, np.sqrt(mse), marker='', color='purple', linewidth=1, label=label)
+    # plt.legend()
  
-    plt.savefig(aa + '/mse_compare.png', orientation='landscape', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.savefig(aa + '/mse_compare.png', orientation='landscape', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
-    plt.cla()
-
+    # plt.cla()
 
     axes = plt.axes()
     axes.set_xlim([0, 23])
     axes.set_ylim([0,1])
-    plt.plot(timeline, baseline, marker='', color='blue', linewidth=1, label="baseline")
-    plt.plot(timeline, trans, marker='', color='red', linewidth=1, label="rfb_transformer")
-    # plt.plot(timeline, np.sqrt(twoloss), marker='', color='green', linewidth=1, label="vit_twoloss")
-    plt.plot(timeline, corr, marker='', color='purple', linewidth=1, label=label)
+
+    for corr in corrs:
+        plt.plot(timeline, corr, marker='', linewidth=1, label=label)
+
     plt.legend()
 
     plt.savefig(aa + '/corr_compare.png', orientation='landscape', bbox_inches='tight')
@@ -174,13 +147,28 @@ def check_last_model():
     print(kk)
 
 if __name__ == '__main__':
-    wo_fp, wo_num = "local/oisst_pvt_1/", '693'
-    fp, num = "local/oisst_pvt/", '265'
-    wo_mse, wo_corr = plotresult(wo_fp, wo_num)
-    mse, corr = plotresult(fp, num)
+    # name & fp
+    oisst_trf_fp = {'oisst_transformer_mse' : 'local/oisst_trf_mse/eval_188/eval_188.pth',
+                    'oisst_transformer_FrechetGELV' : 'local/oisst_trf_frechet/eval_10/eval_10.pth',
+                    'oisst_transformer_GumbelGELV' :'local/oisst_trf_gumbel/eval_16/eval_16.pth',
+                    'oisst_transformer_WeightedMSE' : 'local/oisst_trf_weightedmse/eval_19/eval_19.pth'}
 
-    plt.plot(corr, marker='', color='blue', linewidth=1, label="TeacherForcing")
-    plt.plot(wo_corr, marker='', color='red', linewidth=1, label="w/o_TeacherForcing")
+    oisst_lstm_fp = {'oisst_lstm_mse' : 'local/oisst_lstm_mse_rfb4/eval_211/eval_211.pth',
+                    'oisst_lstm_FrechetGELV' : 'local/oisst_lstm_Frechet_rfb4/eval_24/eval_24.pth',
+                    'oisst_lstm_GumbelGELV' :'local/oisst_lstm_gumbel_rfb4/eval_260/eval_260.pth',
+                    'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_weightedmse_rfb4/eval_0/eval_0.pth'}
+
+    tmp = {}
+
+    mses, corrs = [], []
+    
+    for i in oisst_trf_fp:
+        mse, corr = plotresult(oisst_trf_fp[i])
+        tmp[i] = corr
+
+    plt.plot([0.5]*23, marker='r--')
+    for i in tmp:
+        plt.plot(tmp[i], marker='', linewidth=1, label=i)
     plt.legend()
     plt.savefig('cc.png', orientation='landscape', bbox_inches='tight')
 

@@ -19,17 +19,12 @@ class RFB_Transformer(nn.Module):
         self.rfb4 = RFB(out_channels*4, out_channels*8) 
 
         self.decoder = decoder
-
-        # if decoder == True:
-        #     self.transformer = nn.Transformer(d_model = 64) #embed_dim must be divisible by num_heads
-        # else :
-        self.transformer = ViT(num_classes = num_classes, dim = dim, depth = depth, heads = heads, dim_head = dim_head, mlp_dim = mlp_dim)
-        # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
-
         self.dense_1 = nn.Linear(64, 1)
         self.dense_2 = nn.Linear(81, 23)
 
-        # self.act = nn.Sigmoid()
+        self.transformer = ViT(num_classes = num_classes, dim = dim, depth = depth, heads = heads, dim_head = dim_head, mlp_dim = mlp_dim)
+        # depth = num of encoder stack / heads, dim_head = attention head # & inner dim / mlp_dim = feed-forward inner dim
+
         self.gelu = nn.GELU()
         self.maxpool = nn.MaxPool3d(kernel_size = (2, 2, 1), stride=(2, 2, 1))
 
