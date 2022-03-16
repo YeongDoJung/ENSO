@@ -40,6 +40,17 @@ def pearson(pred, gt):
     allLoss /= pred.shape[0]
     return allLoss
 
+def nan_hook(self, inp, output):
+    if not isinstance(output, tuple):
+        outputs = [output]
+    else:
+        outputs = output
+
+    for i, out in enumerate(outputs):
+        nan_mask = torch.isnan(out)
+        if nan_mask.any():
+            print("In", self.__class__.__name__)
+            raise RuntimeError(f"Found NAN in output {i} at indices: ", nan_mask.nonzero(), "where:", out[nan_mask.nonzero()[:, 0].unique(sorted=True)])
 
 def train(args, model, optimizer, trainset, criterion, writer):
     args = args
@@ -198,7 +209,9 @@ if __name__ == "__main__":
     # Dataset for training
 
     
-    model = build.__dict__[args.model]().to(device=device)
+    model = build.__dict__[args.model]().to(device=device)    
+    for submodule in model.modules():
+        submodule.register_forward_hook(nan_hook)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')

@@ -139,13 +139,13 @@ def pearson(x, y):
 class mse(nn.Module):
     def __init__(self) -> None:
         super(mse, self).__init__()
-        self.m = nn.MSELoss()
+        self.m = nn.MSELoss(reduction='mean')
 
     def custom(self, pr, gt):
         et = torch.abs(pr, gt)
 
     def forward(self, pr, gt):
-        return self.m(pr, gt)
+        return self.m(pr + (1e-8), gt + (1e-8))
 
 # Generalized Extreme Value Loss (Frechet GEVL + Gumbel GEVL)
 def FrechetGEVL(pred, target, a=13, s=1.7):
