@@ -8,3 +8,5 @@ python main.py --name oisst_trf_rfb4_gumbel --data 1 --dataset oisst3 --model oi
 python main.py --name oisst_trf_rfb4_frechet --data 1 --dataset oisst3 --model oisst_encoder --batch_size 100 --gpu 7 --crit FGELV
 
 python main.py --name oisst_trf_edit --data 1 --dataset oisst3 --model oisst_encoder_edit --batch_size 10 --gpu 3 --crit FGELV
+
+
