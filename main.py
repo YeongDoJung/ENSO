@@ -170,6 +170,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default='')
     parser.add_argument('--dataset', type=str, default='')
     parser.add_argument('--crit', type=str, default='')
+    parser.add_argument('--debug', type=bool, default=False)
 
     parser.add_argument("--val_min", type=float, default=9999)
     parser.add_argument("--current_epoch", type=int, default=0)
@@ -210,8 +211,11 @@ if __name__ == "__main__":
 
     
     model = build.__dict__[args.model]().to(device=device)    
-    for submodule in model.modules():
-        submodule.register_forward_hook(nan_hook)
+    
+    if args.debug:
+        torch.autograd.set_detect_anomaly(True)
+        for submodule in model.modules():
+            submodule.register_forward_hook(nan_hook)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')
@@ -221,7 +225,6 @@ if __name__ == "__main__":
     corr_list = []
     
     torch.cuda.empty_cache()
-    torch.autograd.set_detect_anomaly(True)
 
     if not os.path.exists(f'{Folder}/'):
         os.makedirs(f'{Folder}/')
