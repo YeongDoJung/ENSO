@@ -208,6 +208,7 @@ if __name__ == "__main__":
     corr_list = []
     
     torch.cuda.empty_cache()
+    torch.autograd.set_detect_anomaly(True)
 
     if not os.path.exists(f'{Folder}/'):
         os.makedirs(f'{Folder}/')
