@@ -99,8 +99,8 @@ def plotresult(fp):
     np.savetxt(f'{Folder}/{dd}/correlation.csv',corr,delimiter=",")
 
     # print(assemble_pred_nino)
-    np.save(f"{Folder}{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
-    np.save(f"{Folder}{dd}/lead_assemble_pred_nino", assemble_pred_nino)
+    np.save(f"{Folder}/{dd}/lead_assemble_real_nino", assemble_real_nino) # 길이가 valset인 것이 ensemble 갯수 만큼 들어있음
+    np.save(f"{Folder}/{dd}/lead_assemble_pred_nino", assemble_pred_nino)
 
     return mse, corr
 
@@ -133,7 +133,6 @@ def compare(mse, *corrs, fp, num, label):
     plt.show()
     plt.close()
 
-
 def check_last_model():
     sp = './local/3DRFB_Transformer_decoder/'
     sps = os.listdir(sp)
@@ -150,12 +149,12 @@ def check_last_model():
 if __name__ == '__main__':
     # name & fp
     oisst_trf_fp = {'oisst_transformer_mse' : 'local/oisst_trf_mse/eval_188/eval_188.pth',
-                    'oisst_transformer_FrechetGELV' : '/local/oisst_trf_frechet/eval_10/eval_10.pth',
+                    'oisst_transformer_FrechetGELV' : 'local/oisst_trf_frechet/eval_10/eval_10.pth',
                     'oisst_transformer_GumbelGELV' :'local/oisst_trf_gumbel/eval_16/eval_16.pth',
                     'oisst_transformer_WeightedMSE' : 'local/oisst_trf_weightedmse/eval_19/eval_19.pth'}
 
     oisst_lstm_fp = {'oisst_lstm_mse' : 'local/oisst_lstm_mse_rfb4/eval_211/eval_211.pth',
-                    'oisst_lstm_FrechetGELV' : '/local/oisst_lstm_Frechet_rfb4/eval_24/eval_24.pth',
+                    'oisst_lstm_FrechetGELV' : 'local/oisst_lstm_Frechet_rfb4/eval_24/eval_24.pth',
                     'oisst_lstm_GumbelGELV' :'local/oisst_lstm_gumbel_rfb4/eval_260/eval_260.pth',
                     'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_weightedmse_rfb4/eval_0/eval_0.pth'}
 
@@ -165,9 +164,9 @@ if __name__ == '__main__':
     
     for i in oisst_trf_fp:
         mse, corr = plotresult(oisst_trf_fp[i])
-        tmp[i].append(corr)
+        tmp[i] = corr
 
-
+    plt.plot([0.5]*23, marker='r--')
     for i in tmp:
         plt.plot(tmp[i], marker='', linewidth=1, label=i)
     plt.legend()

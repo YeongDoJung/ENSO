@@ -45,7 +45,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
     
-    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True, drop_last=True), total=len(trainset)//args.batch_size)
+    trainloader = tqdm.tqdm(DataLoader(trainset, batch_size=args.batch_size, shuffle=True, drop_last=False), total=len(trainset)//args.batch_size)
 
     # Training
     model.train()
@@ -76,7 +76,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
         del src
         del label
 
-        trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {trainloss.avg:.4f}-{tl:.4f}')
+        trainloader.set_description(f'{args.current_epoch}/{args.numEpoch} train loss = {trainloss.avg:.4f}-{tl:.4f}')
 
     # vis.add_data_point(title = 'loss/train', data = trainloss.avg, pos = args.current_epoch)
 
@@ -118,7 +118,7 @@ def valid(args, model, valset, criterion, writer):
             del src
             del label
 
-            testloader.set_description(f'{args.current_epoch}/{args.numEpoch} loss = {valloss.avg:.4f}-{vl:.4f}')
+            testloader.set_description(f'{args.current_epoch}/{args.numEpoch} valid loss = {valloss.avg:.4f}-{vl:.4f}')
 
         # vis.add_data_point(title = 'loss/valid', data = valloss.avg, pos = args.current_epoch)
         
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='correlation skill') 
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--numEpoch", type=int, default=700)
+    parser.add_argument("--numEpoch", type=int, default=2000)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_enc_2')
     parser.add_argument('--data', type=int, default=0)
