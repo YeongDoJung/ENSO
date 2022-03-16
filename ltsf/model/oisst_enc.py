@@ -190,11 +190,18 @@ class ViT(nn.Module):
         x = self.dropout(x)
 
         x = self.transformer(x)
+        print(x.shape)
 
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        print(x.shape)
 
         x = self.to_latent(x)
-        return self.mlp_head(x)
+
+        print(x.shape)
+        x = self.mlp_head(x)
+        print(x.shape)
+
+        return x
 
 class BasicConv3d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):

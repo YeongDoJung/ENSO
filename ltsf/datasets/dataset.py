@@ -330,11 +330,7 @@ class oisst3(D.Dataset):
             self.tr_y = self.tr_y[:353]
         elif self.mode == 'valid':
             self.tr_x = self.tr_x[353:441:,:,:,:,:]
-<<<<<<< HEAD
-            self.tr_y = self.tr_y[353:441:,:,:,:,:]
-=======
             self.tr_y = self.tr_y[353:441:]
->>>>>>> ab127dc7983493b7ccff42bd74a8dbbef6c8b812
 
 
     def make_n_monthdata(self, x, n, endoflist):
