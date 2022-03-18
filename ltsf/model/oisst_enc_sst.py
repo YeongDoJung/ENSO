@@ -41,28 +41,33 @@ class RFB_Transformer(nn.Module):
         self.dense = nn.Linear(726, num_classes)
 
     def forward(self, x) :
-        b = x.shape[0]
+        b = x.shape[0] # inputshape = N, 1, 180, 360, 3
         #feature extract
-        out = self.rfb1(x)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        # N, 16, 90, 180, 3
+        out = self.rfb1(x) 
+        out = F.dropout(out) 
         out = self.gelu(out)
         out = self.maxpool(out)
 
+        #N, 32, 45, 90, 3
         out = self.rfb2(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        out = F.dropout(out)
         out = self.gelu(out)
         out = self.maxpool(out)
         
+        #N, 64, 22, 45, 3
         out = self.rfb3(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        out = F.dropout(out)
         out = self.gelu(out)
         out = self.maxpool(out)
 
+        #N, 128, 11, 22, 3
         out = self.rfb4(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        out = F.dropout(out)
         out = self.gelu(out)
         out = self.maxpool(out)
 
+        #N, 128, (11*22*3)
         out = self.arr1(out)
 
         pe = repeat(self.PE, '() n c -> b n c', b = b)
@@ -70,8 +75,10 @@ class RFB_Transformer(nn.Module):
 
         out = self.transformer(out)
 
+        #GAP / N, 128, 1
         out = torch.mean(out, dim = -1)
 
+        #Classifier / N, 23
         out = self.dense(out)
 
         return out

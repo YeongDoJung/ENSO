@@ -40,7 +40,7 @@ def pearson(pred, gt):
     allLoss /= pred.shape[0]
     return allLoss
 
-def nan_hook(self, inp, output):
+def nan_hook(self, input, output):
     if not isinstance(output, tuple):
         outputs = [output]
     else:
@@ -49,8 +49,19 @@ def nan_hook(self, inp, output):
     for i, out in enumerate(outputs):
         nan_mask = torch.isnan(out)
         if nan_mask.any():
-            print("In", self.__class__.__name__)
-            raise RuntimeError(f"Found NAN in output {i} at indices: ", nan_mask.nonzero(), "where:", out[nan_mask.nonzero()[:, 0].unique(sorted=True)])
+            with open('./debug.txt', 'w') as f:
+                print("In", self.__class__.__name__)
+                f.write('\n')
+                f.write(self.__class__.__name__)
+                f.write('\n')
+                for i in range(len(nan_mask)):
+                    f.write(str(nan_mask[i]) + '\n')
+                f.write('\n')
+                for i in range(len(out[nan_mask.nonzero()[:, 0].unique(sorted=True)])):
+                    f.write(str(out[nan_mask.nonzero()[:, 0].unique(sorted=True)][i]))
+                f.write('\n')
+
+                raise RuntimeError(f"Found NAN in output {i} at indices: ", nan_mask.nonzero(), "where:", out[nan_mask.nonzero()[:, 0].unique(sorted=True)])
 
 def train(args, model, optimizer, trainset, criterion, writer):
     args = args
@@ -63,7 +74,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, label) in enumerate(trainloader):
+    for i, (src, label, index) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
@@ -75,6 +86,8 @@ def train(args, model, optimizer, trainset, criterion, writer):
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
             output = model(src)
             tl = criterion(output, label)
+            if torch.isnan(tl):
+                print(index)
             # if torch.isnan(tl):
             #     print(src)
             trainloss.update(tl)
@@ -108,7 +121,7 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), 23))
 
     with torch.no_grad() :
-        for i, (src, label) in enumerate(testloader):
+        for i, (src, label, index) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
@@ -215,7 +228,10 @@ if __name__ == "__main__":
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
         for submodule in model.modules():
-            submodule.register_forward_hook(nan_hook)
+            if str(submodule).startswith('Multi'):
+                pass
+            else:
+                submodule.register_forward_hook(nan_hook)
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
     optimizer = torch.optim.Adam(model.parameters())
     # criterion = nn.MSELoss(reduction='mean')

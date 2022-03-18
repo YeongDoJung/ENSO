@@ -47,14 +47,14 @@ def plotresult(fp):
     # eg) local\oisst_trf_mse\eval_188\eval_188.pth
 
     # Dataset for training
-    valset = oisst3(SSTFile_val, HCFile_val, 'valid')
+    valset = oisst3(SSTFile_val, HCFile_val, 'test')
     batch_size = 1 # len(valset) // 1                             # batch size
     testloader = DataLoader(valset, batch_size = batch_size, shuffle=False)
 
     assemble_real_nino = np.zeros((len(valset), 23))
     assemble_pred_nino = np.zeros((len(valset), 23))
 
-    model = build.oisst_encoder().to(device)
+    model = build.oisst_Model_3D().to(device)
     model.load_state_dict(torch.load(f'{Folder}/{dd}/{dd}.pth', map_location=device))
     model.eval()
     
@@ -153,20 +153,20 @@ if __name__ == '__main__':
                     'oisst_transformer_GumbelGELV' :'local/oisst_trf_gumbel/eval_16/eval_16.pth',
                     'oisst_transformer_WeightedMSE' : 'local/oisst_trf_weightedmse/eval_19/eval_19.pth'}
 
-    oisst_lstm_fp = {'oisst_lstm_mse' : 'local/oisst_lstm_mse_rfb4/eval_211/eval_211.pth',
-                    'oisst_lstm_FrechetGELV' : 'local/oisst_lstm_Frechet_rfb4/eval_24/eval_24.pth',
-                    'oisst_lstm_GumbelGELV' :'local/oisst_lstm_gumbel_rfb4/eval_260/eval_260.pth',
-                    'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_weightedmse_rfb4/eval_0/eval_0.pth'}
+    oisst_lstm_fp = {'oisst_lstm_mse' : 'local/oisst_lstm_rfb4_rmse/eval_79/eval_79.pth',
+                    'oisst_lstm_FrechetGELV' : 'local/oisst_lstm_rfb4_frechet/eval_82/eval_82.pth',
+                    'oisst_lstm_GumbelGELV' :'local/oisst_lstm_rfb4_gumbel/eval_122/eval_122.pth',
+                    'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_rfb4_weightedrmse/eval_559/eval_559.pth'}
 
     tmp = {}
 
     mses, corrs = [], []
     
-    for i in oisst_trf_fp:
-        mse, corr = plotresult(oisst_trf_fp[i])
+    for i in oisst_lstm_fp:
+        mse, corr = plotresult(oisst_lstm_fp[i])
         tmp[i] = corr
 
-    plt.plot([0.5]*23, marker='r--')
+    # plt.plot([0.5]*23, marker='r--')
     for i in tmp:
         plt.plot(tmp[i], marker='', linewidth=1, label=i)
     plt.legend()

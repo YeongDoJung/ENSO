@@ -39,7 +39,7 @@ class basicdataset(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx, :]
-        return x, y
+        return x, y, idx
 
 @register_model
 class dtom(D.Dataset):
@@ -301,7 +301,8 @@ class oisst3(D.Dataset):
             endoflist = 408 - input_month
         elif self.mode == 'valid':
             endoflist = 444 - input_month
-        
+        elif self.mode == 'test':
+            endoflist = 444 - input_month
         sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
         hcData =  nc.Dataset(Path(hc_fp))['hca'][:,::-1]
 
@@ -311,7 +312,13 @@ class oisst3(D.Dataset):
         hc = pd.DataFrame(rearrange(hcData, 'a b c -> a (b c)'))
         hc = hc.fillna(0)
         hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
-        hc = (hc - hc.max()) / (hc.max() - hc.min())
+        new_hc = np.zeros_like(hc)
+        for i in range(len(hc)):
+            # new_hc[i,:] = (hc[i] - hc[i].mean()) / (hc[i].std() + 1e-4)
+            new_hc[i,:] = (hc[i] - hc[i].min()) / (hc[i].max() - hc[i].min() + 1e-4)
+        
+        del new_hc
+        # hc = (hc - hc.max()) / (hc.max() - hc.min())
 
         sst = rearrange(sst, 'a b c -> 1 a b c')
         sst = self.make_n_monthdata(sst, input_month, endoflist)
@@ -331,7 +338,9 @@ class oisst3(D.Dataset):
         elif self.mode == 'valid':
             self.tr_x = self.tr_x[353:441:,:,:,:,:]
             self.tr_y = self.tr_y[353:441:]
-
+        if self.mode == 'test':
+            self.tr_x = self.tr_x[:,:,:,:,:]
+            self.tr_y = self.tr_y[:]
 
     def make_n_monthdata(self, x, n, endoflist):
         tmp = []
@@ -345,5 +354,52 @@ class oisst3(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx:idx+23]
-        return x, y
+        return x, y, idx
 
+@register_model
+class oisst3_sstonly(D.Dataset):
+    def __init__(self, sst_fp, hc_fp, mode, input_month = 3):
+        self.mode = mode
+        if self.mode == 'train':
+            endoflist = 408 - input_month
+        elif self.mode == 'valid':
+            endoflist = 444 - input_month
+        elif self.mode == 'test':
+            endoflist = 444 - input_month
+        sstData =  nc.Dataset(Path(sst_fp))['ssta'][:,::-1]
+
+        sst = pd.DataFrame(rearrange(sstData, 'a b c -> a (b c)'))
+        sst = sst.fillna(0)
+        sst = rearrange(sst.to_numpy(), 'a (w h) -> a h w', w = 360, h = 180)
+
+        sst = rearrange(sst, 'a b c -> 1 a b c') # 1 len 180 360
+        sst = self.make_n_monthdata(sst, input_month, endoflist) # 3 len 180 360
+        sst = rearrange(sst, 'a b c d -> b 1 c d a') # len 1 180 360 3
+        print(sst.shape)
+
+        self.tr_x = sst
+        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
+
+        if self.mode == 'train':
+            self.tr_x = self.tr_x[:353,:,:,:,:]
+            self.tr_y = self.tr_y[:353]
+        elif self.mode == 'valid':
+            self.tr_x = self.tr_x[353:441:,:,:,:,:]
+            self.tr_y = self.tr_y[353:441:]
+        if self.mode == 'test':
+            self.tr_x = self.tr_x[:,:,:,:,:]
+            self.tr_y = self.tr_y[:]
+
+    def make_n_monthdata(self, x, n, endoflist):
+        tmp = []
+        for i in range(n):
+            tmp.append(x[0, 0+i:0+i+endoflist, :, :])
+        return np.stack(tmp, axis=0)
+
+    def __len__(self):
+        return len(self.tr_x) - 23
+
+    def __getitem__(self, idx):
+        x = self.tr_x[idx] 
+        y = self.tr_y[idx:idx+23]
+        return x, y, idx
