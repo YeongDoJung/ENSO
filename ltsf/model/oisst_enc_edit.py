@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Module, MultiheadAttention, ModuleList, Dropout, Linear, LayerNorm
+from torch.nn import Module, MultiheadAttention, ModuleList, Dropout, Linear, LayerNorm, BatchNorm2d
 from torch.nn.init import xavier_uniform_
 
 from einops import rearrange, repeat
@@ -93,7 +93,8 @@ class Transformer(Module):
             encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout,
                                                     activation, layer_norm_eps, batch_first, norm_first,
                                                     **factory_kwargs)
-            encoder_norm = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+            # encoder_norm = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+            encoder_norm = BatchNorm2d(d_model)
             self.encoder = TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
 
         self._reset_parameters()
@@ -159,8 +160,10 @@ class TransformerEncoderLayer(Module):
         self.linear2 = Linear(dim_feedforward, d_model, **factory_kwargs)
 
         self.norm_first = norm_first
-        self.norm1 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
-        self.norm2 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        # self.norm1 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        # self.norm2 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        self.norm1 = BatchNorm2d(d_model)
+        self.norm2 = BatchNorm2d(d_model)
         self.dropout1 = Dropout(dropout)
         self.dropout2 = Dropout(dropout)
 
