@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import Module, MultiheadAttention, ModuleList, Dropout, Linear, LayerNorm, BatchNorm2d
+from torch.nn import Module, MultiheadAttention, ModuleList, Dropout, Linear, LayerNorm, BatchNorm1d ,BatchNorm2d, BatchNorm3d
 from torch.nn.init import xavier_uniform_
 
 from einops import rearrange, repeat
@@ -26,6 +26,7 @@ class RFB_Transformer(nn.Module):
         self.rfb3 = RFB(out_channels*2, out_channels*4) 
         self.rfb4 = RFB(out_channels*4, out_channels*8) 
 
+
         self.transformer = Transformer(d_model = d_model, nhead = nhead, num_encoder_layers = num_encoder_layers,
                  dim_feedforward = dim_feedforward, dropout = dropout,
                  activation = activation, layer_norm_eps = layer_norm_eps, batch_first = False, norm_first = False)
@@ -36,33 +37,33 @@ class RFB_Transformer(nn.Module):
 
         self.arr1 = Rearrange('n f c w h -> n (c w h) f')
 
-        self.PE = nn.Parameter(torch.rand(1, 726, 128))
+        self.PE = nn.Parameter(torch.rand(1, 2970, 128))
 
-        self.dense = nn.Linear(726, num_classes)
+        self.dense = nn.Linear(2970, num_classes)
 
     def forward(self, x) :
         b = x.shape[0]
         #feature extract
+        out = self.maxpool(x)
         out = self.rfb1(x)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
         out = self.gelu(out)
-        out = self.maxpool(out)
+        # print('rfb1out',torch.sum(torch.isnan(out)))
+        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
 
+        out = self.maxpool(out)
         out = self.rfb2(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
         out = self.gelu(out)
+        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+
         out = self.maxpool(out)
-        
         out = self.rfb3(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
         out = self.gelu(out)
-        out = self.maxpool(out)
 
+        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
+        out = self.maxpool(out)
         out = self.rfb4(out)
-        # out = F.dropout(out) # MCDropout(out, self.droprate, apply=True)
         out = self.gelu(out)
-        out = self.maxpool(out)
-
+        
         out = self.arr1(out)
 
         pe = repeat(self.PE, '() n c -> b n c', b = b)
@@ -93,8 +94,7 @@ class Transformer(Module):
             encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout,
                                                     activation, layer_norm_eps, batch_first, norm_first,
                                                     **factory_kwargs)
-            # encoder_norm = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
-            encoder_norm = BatchNorm2d(d_model)
+            encoder_norm = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
             self.encoder = TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
 
         self._reset_parameters()
@@ -140,7 +140,9 @@ class TransformerEncoder(Module):
             output = mod(output)
 
         if self.norm is not None:
+            # output = rearrange(output, 'a b c -> a c b')
             output = self.norm(output)
+            # output = rearrange(output, 'a b c -> a c b')
 
         return output
 
@@ -160,10 +162,10 @@ class TransformerEncoderLayer(Module):
         self.linear2 = Linear(dim_feedforward, d_model, **factory_kwargs)
 
         self.norm_first = norm_first
-        # self.norm1 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
-        # self.norm2 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
-        self.norm1 = BatchNorm2d(d_model)
-        self.norm2 = BatchNorm2d(d_model)
+        self.norm1 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        self.norm2 = LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        # self.norm1 = BatchNorm1d(d_model)
+        # self.norm2 = BatchNorm1d(d_model)
         self.dropout1 = Dropout(dropout)
         self.dropout2 = Dropout(dropout)
 
@@ -182,8 +184,15 @@ class TransformerEncoderLayer(Module):
     def forward(self, src: Tensor) -> Tensor:
         x = src
         x = self.norm1(x + self._sa_block(x))
-        x = self.norm2(x + self._ff_block(x))
-
+        x = self.norm1(x + self._ff_block(x))
+        # x = x + self._sa_block(x)
+        # x = rearrange(x, 'a b c -> a c b')
+        # x = self.norm1(x)
+        # x = rearrange(x, 'a b c -> a c b')
+        # x = x + self._ff_block(x)
+        # x = rearrange(x, 'a b c -> a c b')
+        # x = self.norm2(x)
+        # x = rearrange(x, 'a b c -> a c b')
         return x
 
 
@@ -218,11 +227,12 @@ class BasicConv3d(nn.Module):
         gain = 1.0
         self.conv = nn.Conv3d(in_planes, out_planes,
                               kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        nn.init.orthogonal_(self.conv.weight, gain=gain)
+                              padding=padding, dilation=dilation)
+        xavier_uniform_(self.conv.weight)
+        # nn.init.orthogonal_(self.conv.weight, gain=gain)
         # nn.init.constant_(self.conv.bias.data, 0)
         # self.bn = nn.BatchNorm3d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.conv(x)
@@ -232,7 +242,7 @@ class BasicConv3d(nn.Module):
 class RFB(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(RFB, self).__init__()
-        self.relu = nn.ReLU(True)
+        self.relu = nn.ReLU()
         self.branch0 = nn.Sequential(
             BasicConv3d(in_channel, out_channel, 1),
         )
@@ -240,19 +250,16 @@ class RFB(nn.Module):
             BasicConv3d(in_channel, out_channel, 1),
             BasicConv3d(out_channel, out_channel, kernel_size=(1, 3, 1), padding=(0, 1, 0)),
             BasicConv3d(out_channel, out_channel, kernel_size=(3, 1, 1), padding=(1, 0, 0)),
-            BasicConv3d(out_channel, out_channel, kernel_size=(3, 3, 3), padding=(3, 3, 1), dilation=(3, 3, 1))
         )
         self.branch2 = nn.Sequential(
             BasicConv3d(in_channel, out_channel, 1),
             BasicConv3d(out_channel, out_channel, kernel_size=(1, 5, 1), padding=(0, 2, 0)),
             BasicConv3d(out_channel, out_channel, kernel_size=(5, 1, 1), padding=(2, 0, 0)),
-            BasicConv3d(out_channel, out_channel, kernel_size=(3, 3, 3), padding=(5, 5, 1), dilation=(5, 5, 1))
         )
         self.branch3 = nn.Sequential(
             BasicConv3d(in_channel, out_channel, 1),
             BasicConv3d(out_channel, out_channel, kernel_size=(1, 7, 1), padding=(0, 3, 0)),
             BasicConv3d(out_channel, out_channel, kernel_size=(7, 1, 1), padding=(3, 0, 0)),
-            BasicConv3d(out_channel, out_channel, kernel_size=(3, 3, 3), padding=(7, 7, 1), dilation=(7, 7, 1))
         )
         self.conv_cat = BasicConv3d(4*out_channel, out_channel, 3, padding=1)
         self.conv_res = BasicConv3d(in_channel, out_channel, 1)
@@ -265,11 +272,13 @@ class RFB(nn.Module):
         x_cat = self.conv_cat(torch.cat((x0, x1, x2, x3), 1))
 #         x_cat = self.conv_cat(torch.cat((x0, x1, x2), 1))
 
-        x = self.relu(x_cat + self.conv_res(x))
+
+        x = x_cat + self.conv_res(x)
         return x
 
 if __name__ == "__main__":
-    toy = torch.zeros([48,2,72,24,3])
+    toy = torch.rand([48,2,360,180,3])
     model = RFB_Transformer(2, 16)
     out = model(toy)
     print(out.shape)
+    print(torch.isnan(out))

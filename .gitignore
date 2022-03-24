@@ -5,6 +5,7 @@
 *.png
 check.py
 eda.ipynb
+run.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

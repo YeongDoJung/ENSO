@@ -39,7 +39,7 @@ def pearson(pred, gt):
         allLoss += 1.0 - loss + add*0.5
     allLoss /= pred.shape[0]
     return allLoss
-
+'''
 def nan_hook(self, input, output):
     if not isinstance(output, tuple):
         outputs = [output]
@@ -50,7 +50,6 @@ def nan_hook(self, input, output):
         nan_mask = torch.isnan(out)
         if nan_mask.any():
             with open('./debug.txt', 'w') as f:
-                print("In", self.__class__.__name__)
                 f.write('\n')
                 f.write(self.__class__.__name__)
                 f.write('\n')
@@ -61,8 +60,9 @@ def nan_hook(self, input, output):
                     f.write(str(out[nan_mask.nonzero()[:, 0].unique(sorted=True)][i]))
                 f.write('\n')
 
-                raise RuntimeError(f"Found NAN in output {i} at indices: ", nan_mask.nonzero(), "where:", out[nan_mask.nonzero()[:, 0].unique(sorted=True)])
-
+                raise RuntimeError()
+                    # f"Found NAN in output {i} at indices: ", nan_mask.nonzero(), "where:", out[nan_mask.nonzero()[:, 0].unique(sorted=True)])
+'''
 def train(args, model, optimizer, trainset, criterion, writer):
     args = args
     scaler = torch.cuda.amp.GradScaler(enabled=True)
@@ -117,8 +117,8 @@ def valid(args, model, valset, criterion, writer):
     valloss = metric.AverageMeter()
     model.eval()
 
-    assemble_real_nino = np.zeros((len(valset), 23))
-    assemble_pred_nino = np.zeros((len(valset), 23))
+    assemble_real_nino = np.zeros((len(valset), args.data_targetmonth))
+    assemble_pred_nino = np.zeros((len(valset), args.data_targetmonth))
 
     with torch.no_grad() :
         for i, (src, label, index) in enumerate(testloader):
@@ -127,15 +127,15 @@ def valid(args, model, valset, criterion, writer):
             label = label.clone().detach().requires_grad_(True).to(device=device)
 
             idx = src.shape[0]*i
-            uncertaintyarry_nino = np.zeros((1, src.shape[0], 23))
+            uncertaintyarry_nino = np.zeros((1, src.shape[0], args.data_targetmonth))
 
             for b in range(int(1)):
                 output = model(src) # inference
                 vl = val_crit(output, label)
                 valloss.update(vl)
-                uncertaintyarry_nino[b, :, :] = output[:,-23:].cpu()
+                uncertaintyarry_nino[b, :, :] = output[:,:].cpu()
 
-                assemble_real_nino[idx:idx+src.shape[0], :] = label[:,-23:].cpu().numpy()
+                assemble_real_nino[idx:idx+src.shape[0], :] = label[:,:].cpu().numpy()
 
             assemble_pred_nino[idx:idx+src.shape[0], :] += np.mean(uncertaintyarry_nino, axis=0)
             
@@ -146,14 +146,14 @@ def valid(args, model, valset, criterion, writer):
 
         # vis.add_data_point(title = 'loss/valid', data = valloss.avg, pos = args.current_epoch)
         
-        corr = np.zeros(23)
-        for i in range(23):
+        corr = np.zeros(args.data_targetmonth)
+        for i in range(args.data_targetmonth):
             corr[i] = metric.CorrelationSkill(assemble_real_nino[:, i], assemble_pred_nino[:, i])
 
         mse = mean_squared_error(assemble_pred_nino, assemble_real_nino)
         print(corr)
 
-        util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png')
+        util.ploter(corr, f'{Folder}/fig/{args.current_epoch}.png', args.data_targetmonth)
 
     if (valloss.avg) < args.valloss_best : 
         args.valloss_best = valloss.avg
@@ -165,8 +165,8 @@ def valid(args, model, valset, criterion, writer):
         writer.flush()
     writer.close()
 
-    args.current_epoch += 1
     valloss.reset()
+    args.current_epoch += 1
 
     return corr
 
@@ -180,6 +180,9 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_enc_2')
     parser.add_argument('--data', type=int, default=0)
+    parser.add_argument('--data_inputmonth', type=int, default=3)
+    parser.add_argument('--data_targetmonth', type=int, default=24)
+
     parser.add_argument('--model', type=str, default='')
     parser.add_argument('--dataset', type=str, default='')
     parser.add_argument('--crit', type=str, default='')
@@ -223,8 +226,8 @@ if __name__ == "__main__":
     # Dataset for training
 
     
-    model = build.__dict__[args.model]().to(device=device)    
-    
+    model = build.__dict__[args.model](num_classes = args.data_targetmonth).to(device=device)    
+    '''    
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
         for submodule in model.modules():
@@ -232,8 +235,11 @@ if __name__ == "__main__":
                 pass
             else:
                 submodule.register_forward_hook(nan_hook)
+    '''
     # optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005, alpha=0.9)
-    optimizer = torch.optim.Adam(model.parameters())
+    # optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=args.lr)
+    lrsc = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max = 50)
     # criterion = nn.MSELoss(reduction='mean')
     criterion = metric.__dict__[args.crit]()
     val_crit = nn.MSELoss()
@@ -253,8 +259,8 @@ if __name__ == "__main__":
             SSTFile_test_sst = dataFolder / 'oisst' / 'test' / 'sst.nc'
             SSTFile_test_hc = dataFolder / 'oisst' / 'test' / 'hc.nc'
 
-            trainset = dataset.__dict__[args.dataset](SSTFile_train_sst, SSTFile_train_hc, 'train')
-            valset = dataset.__dict__[args.dataset](SSTFile_test_sst, SSTFile_test_hc, 'valid')
+            trainset = dataset.__dict__[args.dataset](SSTFile_train_sst, SSTFile_train_hc, 'train', input_month = args.data_inputmonth, target_month = args.data_targetmonth)
+            valset = dataset.__dict__[args.dataset](SSTFile_test_sst, SSTFile_test_hc, 'valid', input_month = args.data_inputmonth, target_month = args.data_targetmonth)
         elif args.data == 2:
             SSTFile_train = dataFolder / 'Ham' / 'cmip5_tr.input.1861_2001.nc'
             SSTFile_train_label = dataFolder / 'Ham' / 'cmip5_tr.label.1861_2001_integrated.npy'
@@ -286,11 +292,13 @@ if __name__ == "__main__":
 
         train(args, model=model, optimizer=optimizer, trainset=trainset, criterion=criterion, writer = writer)
         c = valid(args, model=model, valset=valset, criterion=criterion, writer = writer)
+        lrsc.step()
         corr_list.append(c)
         # test(args, model=model, testloader)
 
     with open(Folder.joinpath('corr.csv'), 'a') as f:
         for idx, i in enumerate(corr_list):
             tmp = str(idx) + ',' + str(i) + '\n'
+            f.write(tmp)
 
             

@@ -128,7 +128,7 @@ class PatchEmbed(nn.Module):
 
 
 class PyramidVisionTransformer(nn.Module):
-    def __init__(self, img_size=(360,180), patch_size=(4,4), in_chans=6, num_classes=23, embed_dims=[64, 128, 320, 512],
+    def __init__(self, img_size=(360,180), patch_size=(4,4), in_chans=3, num_classes=23, embed_dims=[64, 128, 320, 512],
                  num_heads=[1, 2, 5, 8], mlp_ratios=[8, 8, 4, 4], qkv_bias=True, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=partial(nn.LayerNorm, eps=1e-6),
                  depths=[3, 8, 27, 3], sr_ratios=[8, 4, 2, 1], num_stages=4):
@@ -229,6 +229,7 @@ class PyramidVisionTransformer(nn.Module):
                 x = blk(x, H, W)
             if i != self.num_stages - 1:
                 x = x.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+            
 
         x = self.norm(x)
 

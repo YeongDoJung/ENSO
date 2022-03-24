@@ -28,7 +28,7 @@ def plotresult(fp):
 
     # Arguments
     args = easydict.EasyDict({
-        "gpu": 1,
+        "gpu": 7,
     })
 
     a = fp.split('/')
@@ -47,21 +47,21 @@ def plotresult(fp):
     # eg) local\oisst_trf_mse\eval_188\eval_188.pth
 
     # Dataset for training
-    valset = oisst3(SSTFile_val, HCFile_val, 'test')
+    valset = oisst3(SSTFile_val, HCFile_val, 'valid')
     batch_size = 1 # len(valset) // 1                             # batch size
     testloader = DataLoader(valset, batch_size = batch_size, shuffle=False)
 
     assemble_real_nino = np.zeros((len(valset), 23))
     assemble_pred_nino = np.zeros((len(valset), 23))
 
-    model = build.oisst_Model_3D().to(device)
+    model = build.sep_pvt().to(device)
     model.load_state_dict(torch.load(f'{Folder}/{dd}/{dd}.pth', map_location=device))
     model.eval()
     
     bayesianIter = 1
 
     with torch.no_grad() :
-        for i, (batch,ansnino) in enumerate(testloader):
+        for i, (batch,ansnino, idx) in enumerate(testloader):
             batch = torch.tensor(batch, dtype=torch.float32).to(device=device)
             ansnino = torch.tensor(ansnino, dtype=torch.float32).to(device=device)
             idx = batch.shape[0]*i
@@ -158,12 +158,22 @@ if __name__ == '__main__':
                     'oisst_lstm_GumbelGELV' :'local/oisst_lstm_rfb4_gumbel/eval_122/eval_122.pth',
                     'oisst_lstm_WeightedMSE' : 'local/oisst_lstm_rfb4_weightedrmse/eval_559/eval_559.pth'}
 
+    oisst_pvt_fp = {'oisst_pvt_mse' : 'local/oisst_pvt/eval_19/eval_19.pth',
+                    'oisst_pvt_FrechetGELV' : 'local/oisst_pvt_frechet_/eval_17/eval_17.pth',
+                    'oisst_pvt_GumbelGELV' :'local/oisst_pvt_gumbel_/eval_14/eval_14.pth'}
+                    # 'oisst_pvt_WeightedMSE' : 'local/sep_pvt_weightedrmse/eval_559/eval_559.pth'}
+
+    sep_pvt_fp = {'sep_pvt_mse' : 'local/sep_pvt_mse_/eval_44/eval_44.pth',
+                    'sep_pvt_FrechetGELV' : 'local/sep_pvt_fr/eval_968/eval_968.pth',
+                    'sep_pvt_GumbelGELV' :'local/sep_pvt_gv/eval_1554/eval_1554.pth'}
+
+
     tmp = {}
 
     mses, corrs = [], []
     
-    for i in oisst_lstm_fp:
-        mse, corr = plotresult(oisst_lstm_fp[i])
+    for i in sep_pvt_fp:
+        mse, corr = plotresult(sep_pvt_fp[i])
         tmp[i] = corr
 
     # plt.plot([0.5]*23, marker='r--')

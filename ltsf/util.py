@@ -39,8 +39,8 @@ def stdout(ss):
     sys.stdout.write(ss + '\r')
     sys.stdout.flush()
 
-def ploter(a, fp):
-    timeline = np.arange(0, 23)
+def ploter(a, fp, data_targetmonth):
+    timeline = np.arange(0, data_targetmonth)
     ax = plt.gca()
     ax.set_ylim([0, 1])
     plt.plot(timeline, a, marker='', color='blue', linewidth=1)

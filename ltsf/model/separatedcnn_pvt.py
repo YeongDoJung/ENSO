@@ -25,27 +25,24 @@ class separated(nn.Module):
         out_channel = 8
 
         self.convs = nn.ModuleList()
-        self.convs.append(nn.Conv3d(2, 2, kernel_size=(3,3,1)))
-        self.convs.append(nn.Conv3d(2,2,kernel_size=(1,1,3), padding=(0,0,1)))
+        self.convs.append(nn.Conv3d(2, 2, kernel_size=(3,3,1), padding='same'))
+        self.convs.append(nn.Conv3d(2,2,kernel_size=(1,1,3), padding='same'))
         self.convs.append(nn.GELU())
 
-        w, h = img_size[0] - 2, img_size[1] - 2
-
         for n in range(n_layer - 1):
-            self.convs.append(nn.Conv3d(in_channel, tmp_channel, kernel_size=(3,3,1)))
-            self.convs.append(nn.Conv3d(tmp_channel, out_channel, kernel_size=(1,1,3), padding=(0,0,1)))
+            self.convs.append(nn.Conv3d(in_channel, tmp_channel, kernel_size=(3,3,1), padding='same'))
+            self.convs.append(nn.Conv3d(tmp_channel, out_channel, kernel_size=(1,1,3), padding='same'))
             self.convs.append(nn.GELU())
             in_channel = out_channel
             tmp_channel = in_channel*2
             out_channel = tmp_channel*2
-            w, h = w-2, h-2
 
         self.conv2 = nn.Conv3d(in_channel, 1, kernel_size=(1,1,1))
 
-        n_patch = math.gcd(w, h)
-        w_, h_ = int(w / n_patch), int(h / n_patch)
+        # n_patch = math.gcd(w, h)
+        # w_, h_ = int(w / n_patch), int(h / n_patch)
 
-        self.pvt = PyramidVisionTransformer(img_size = (w, h), patch_size = patch_size, in_chans = in_chans, num_classes = num_classes, 
+        self.pvt = PyramidVisionTransformer(img_size = (360, 180), patch_size = patch_size, in_chans = in_chans, num_classes = num_classes, 
                 embed_dims = embed_dims, num_heads = num_heads, mlp_ratios = mlp_ratios, qkv_bias = qkv_bias, 
                 qk_scale = qk_scale, drop_rate = drop_rate, attn_drop_rate = attn_drop_rate, drop_path_rate = drop_path_rate, 
                 norm_layer = norm_layer, depths = depths, sr_ratios = sr_ratios, num_stages = num_stages)
