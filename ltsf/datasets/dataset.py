@@ -252,11 +252,13 @@ class oisst2(D.Dataset):
 
         sst = pd.DataFrame(rearrange(sstData, 'a b c -> a (b c)'))
         sst = sst.fillna(0)
-        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
+        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 180, h = 360)
+
+        self.tr_y = np.array(np.mean(np.mean(sst[:,80:90,190:258], axis=-1), axis=-1)[-endoflist:], dtype=np.float32)
 
         hc = pd.DataFrame(rearrange(hcData, 'a b c -> a (b c)'))
         hc = hc.fillna(0)
-        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
+        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h',w = 180, h = 360)
         new_hc = (hc - hc.min(axis=1, keepdims=True)) / (hc.max(axis=1, keepdims=True) - hc.min(axis=1, keepdims=True) + 1e-4)
         # hc = (hc - hc.max()) / (hc.max() - hc.min())
 
@@ -277,7 +279,6 @@ class oisst2(D.Dataset):
         self.tr_x = np.append(sst, hc, axis = 0) # 6, 456, 180, 360
         self.tr_x = np.array(rearrange(self.tr_x, 'c b h w -> b c h w'), dtype=np.float32)
 
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,80:90,190:258], axis=-1), axis=-1)[-endoflist:], dtype=np.float32)
 
         if self.mode == 'train':
             self.tr_x = self.tr_x[:353,:,:,:]
@@ -316,11 +317,14 @@ class oisst3(D.Dataset):
 
         sst = pd.DataFrame(rearrange(sstData, 'a b c -> a (b c)'))
         sst = sst.fillna(0)
-        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
+        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 180, h = 360)
+
+        self.tr_y = np.array(np.mean(np.mean(sst[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
+
         # sst = (sst - sst.min()) / (sst.max() - sst.min() + 1e-4)
         hc = pd.DataFrame(rearrange(hcData, 'a b c -> a (b c)'))
         hc = hc.fillna(0)
-        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h', w = 360, h = 180)
+        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h',w = 180, h = 360)
         # hc = (hc - hc.min()) / (hc.max() - hc.min() + 1e-4)
         new_hc = np.zeros_like(hc)
         # for i in range(len(hc)):
@@ -342,7 +346,6 @@ class oisst3(D.Dataset):
 
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 405, 3, 180, 360
         self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32) # eol, 2, 360, 180, 3
-        self.tr_y = np.array(np.mean(np.mean(sstData[:,190:258,80:90], axis=-1), axis=-1), dtype=np.float32)
 
         if self.mode == 'train':
             self.tr_x = self.tr_x[:353,:,:,:,:]
