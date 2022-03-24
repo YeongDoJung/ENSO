@@ -8,6 +8,7 @@ from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from timm.models.registry import register_model
 from timm.models.vision_transformer import _cfg
 
+from einops import repeat, rearrange, reduce
 __all__ = [
     'pvt_tiny', 'pvt_small', 'pvt_medium', 'pvt_large'
 ]
@@ -241,10 +242,39 @@ class PyramidVisionTransformer(nn.Module):
 
         return x
 
-class temporaltransformer(PyramidVisionTransformer):
-    def __init__(self, img_size=(360, 180), patch_size=(4, 4), in_chans=3, num_classes=23, embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratios=[8, 8, 4, 4], qkv_bias=True, qk_scale=None, drop_rate=0, attn_drop_rate=0, drop_path_rate=0, norm_layer=partial(nn.LayerNorm, eps=0.000001), depths=[3, 8, 27, 3], sr_ratios=[8, 4, 2, 1], num_stages=4):
+class temporaltransformer(nn.Module):
+    def __init__(self, img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages, target_month):
         super().__init__(img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages)
+        self.dm = embed_dims[-1]
+        self.tm = target_month
+        self.pe = nn.parameter(1,self.tm,self.dm)
+        self.dense = nn.Linear(self.dm, 1)
 
-        self.TE = nn.Transformer()
+        self.Temporal = nn.Transformer(d_model=self.dm, batch_first=True)
+        self.Spatial = PyramidVisionTransformer(img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages)
 
-    def forward(self, x):
+    def forward(self, x, tgt=None):
+        b, c, w, h, t = x.shape
+        tmp = []
+        for i in range(t):
+            tmp.append(self.Spatial(x[:,:,:,:,i]))
+        out = torch.cat(tmp)
+        if tgt is not None:
+            tmp=[]
+            for j in range(self.tm):
+                tmp.append(self.Spatial(tgt[:,:,:,:,j]))
+            tgt = torch.cat(tmp)
+        else:
+            tgt = torch.zeros_like([b, self.tm, ])
+        tgt += repeat(self.pe, '1 ... -> b ...', b = b)
+
+        out = self.Temporal(src = out, tgt = tgt)
+
+        out = self.dense(out)
+
+        return out
+
+
+
+
+
