@@ -16,3 +16,7 @@ python main.py --data 1 --dataset oisst3 --batch_size 10 --gpu 3 --crit FGELV --
 python main.py --name sc_predict_sep_pvt --data 1 --dataset oisst3 --model sep_pvt --batch_size 10 --gpu 7 --crit mse 
 python main.py --name 12m_predict_sep_pvt_fr --data 1 --dataset oisst3 --model sep_pvt --batch_size 10 --gpu 4 --crit FGELV --data_targetmonth 12
 python main.py --name 12m_predict_sep_pvt_gv --data 1 --dataset oisst3 --model sep_pvt --batch_size 10 --gpu 5 --crit GGELV --data_targetmonth 12
+
+python tgt_main.py --name st_enc_mse --data 1 --dataset oisst_tgt --model sattr_enc --batch_size 20 --crit mse --gpu 3 --data_inputmonth 3 --data_targetmonth 24 
+python tgt_main.py --name st_enc_gb --data 1 --dataset oisst_tgt --model sattr_enc --batch_size 20 --crit GGELV --gpu 4 --data_inputmonth 3 --data_targetmonth 24
+python tgt_main.py --name st_enc_fr --data 1 --dataset oisst_tgt --model sattr_enc --batch_size 20 --crit FGELV --gpu 5 --data_inputmonth 3 --data_targetmonth 24

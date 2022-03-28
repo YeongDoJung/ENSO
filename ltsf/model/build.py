@@ -1,11 +1,12 @@
 from distutils.command import build
+from ltsf.model import spatialandtemporalpvt_encoders
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
-from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst
+from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt
 
 __all__ = ['Model_2D',
 'encoders',
@@ -90,7 +91,7 @@ def h21model():
     return h21.Model2D()
 
 @register_model
-def sep_pvt(n_layer = 3, img_size=(360, 180), patch_size=(20,20), in_chans=2, num_classes=23, embed_dims=[64, 128, 256, 512],
+def sep_pvt(n_layer = 3, img_size=(360, 180), patch_size=(20,20), in_chans=3, num_classes=23, embed_dims=[64, 128, 256, 512],
                  num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4):
@@ -120,6 +121,14 @@ def perceiver(num_freq_bands=None,
     return perceiver_pytorch.Perceiver(num_freq_bands = num_freq_bands, max_freq=max_freq, depth=depth, input_channels=input_channels, input_axis=input_axis, num_latents=num_latents, latent_dim=latent_dim, 
                                     cross_heads=cross_heads, latent_heads=latent_heads, cross_dim_head=cross_dim_head, latent_dim_head=latent_dim_head, num_classes=num_classes, attn_dropout=attn_dropout, ff_dropout=ff_dropout, 
                                     weight_tie_layers=weight_tie_layers, fourier_encode_data=fourier_encode_data, self_per_cross_attn=self_per_cross_attn, final_classifier_head=final_classifier_head)
+
+@register_model
+def sattr(num_classes):
+    return spatialandtemporalpvt.temporaltransformer(img_size=(180,360), patch_size=(5,10), in_chans=2, num_classes=num_classes)
+
+@register_model
+def sattr_enc(num_classes):
+    return spatialandtemporalpvt_encoders.temporaltransformer(img_size=(180,360), patch_size=(5,10), in_chans=2, num_classes=num_classes)
 
 @register_model
 def memorynn():

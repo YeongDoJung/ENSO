@@ -74,9 +74,10 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, tgt, label) in enumerate(trainloader):
+    for i, (src, label, tgt) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
+        tgt = tgt.clone().detach().requires_grad_(True).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
         label = label.clone().detach().requires_grad_(True).to(device=device)
 
@@ -84,10 +85,8 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
         with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
-            output = model(src)
+            output = model(src, tgt)
             tl = criterion(output, label)
-            if torch.isnan(tl):
-                print(index)
             # if torch.isnan(tl):
             #     print(src)
             trainloss.update(tl)
@@ -121,7 +120,7 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), args.data_targetmonth))
 
     with torch.no_grad() :
-        for i, (src, tgt, label) in enumerate(testloader):
+        for i, (src, label, tgt) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
@@ -130,7 +129,7 @@ def valid(args, model, valset, criterion, writer):
             uncertaintyarry_nino = np.zeros((1, src.shape[0], args.data_targetmonth))
 
             for b in range(int(1)):
-                output = model(src) # inference
+                output = model(src, tgt=None) # inference
                 vl = val_crit(output, label)
                 valloss.update(vl)
                 uncertaintyarry_nino[b, :, :] = output[:,:].cpu()

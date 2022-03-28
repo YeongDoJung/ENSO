@@ -13,10 +13,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from ltsf.model import build
-from ltsf.datasets import dataset 
+from ltsf.datasets.dataset import basicdataset, tdimdataset, tfdataset, tgtdataset, oisst2, oisst3, oisst_tgt
 from ltsf.metric import CorrelationSkill
 import easydict
-import argparse
 import csv
 import pandas as pd
 
@@ -28,15 +27,9 @@ def plotresult(fp):
     # torch.manual_seed(0)
 
     # Arguments
-    parser = argparse.ArgumentParser(description='correlation skill') 
-    parser.add_argument("--gpu", type=int, default=1)
-    parser.add_argument("--batch_size", type=int, default=1)
-    parser.add_argument('--data_inputmonth', type=int, default=3)
-    parser.add_argument('--data_targetmonth', type=int, default=24)
-
-    parser.add_argument('--model', type=str, default='')
-    parser.add_argument('--dataset', type=str, default='')
-    args = parser.parse_args()
+    args = easydict.EasyDict({
+        "gpu": 7,
+    })
 
     a = fp.split('/')
     dd = str(a[-1])[0:-4] #eval_nnn.pth
@@ -54,14 +47,14 @@ def plotresult(fp):
     # eg) local\oisst_trf_mse\eval_188\eval_188.pth
 
     # Dataset for training
-    valset =  dataset.__dict__[args.dataset](SSTFile_val, HCFile_val, 'valid', input_month = args.data_inputmonth, target_month = args.data_targetmonth)
+    valset = oisst_tgt(SSTFile_val, HCFile_val, 'test')
     batch_size = 1 # len(valset) // 1                             # batch size
     testloader = DataLoader(valset, batch_size = batch_size, shuffle=False)
 
-    assemble_real_nino = np.zeros((len(valset), args.data_targetmonth))
-    assemble_pred_nino = np.zeros((len(valset), args.data_targetmonth))
+    assemble_real_nino = np.zeros((len(valset), 23))
+    assemble_pred_nino = np.zeros((len(valset), 23))
 
-    model = build.__dict__[args.model](num_classes = args.data_targetmonth).to(device=device)
+    model = build.sattr(num_classes=24).to(device)
     model.load_state_dict(torch.load(f'{Folder}/{dd}/{dd}.pth', map_location=device))
     model.eval()
     
@@ -72,21 +65,21 @@ def plotresult(fp):
             batch = torch.tensor(batch, dtype=torch.float32).to(device=device)
             ansnino = torch.tensor(ansnino, dtype=torch.float32).to(device=device)
             idx = batch.shape[0]*i
-            uncertaintyarry_nino = np.zeros((bayesianIter, batch_size, args.data_targetmonth))
+            uncertaintyarry_nino = np.zeros((bayesianIter, batch_size, 23))
             for b in range(int(bayesianIter)):
                 output = model(batch) # inference
-                prednino = output[:,:].detach().cpu().numpy()
+                prednino = output[:,-23:].detach().cpu().numpy()
                 uncertaintyarry_nino[b, :, :] = prednino
 
-            assemble_real_nino[idx:idx+batch_size, :] = ansnino[:,:].cpu().numpy()
+            assemble_real_nino[idx:idx+batch_size, :] = ansnino[:,-23:].cpu().numpy()
             assemble_pred_nino[idx:idx+batch.shape[0], :] += np.mean(uncertaintyarry_nino, axis=0)
 
 
     mse = mean_squared_error(assemble_pred_nino, assemble_real_nino, multioutput='raw_values')
     print(mse)
 
-    corr = np.zeros(args.data_targetmonth)
-    for i in range(args.data_targetmonth):
+    corr = np.zeros(23)
+    for i in range(23):
         corr[i] = CorrelationSkill(assemble_real_nino[:, i], assemble_pred_nino[:, i])
         print('Save prediction: lead = {}'.format(i) )
         inputTimeSeq = assemble_real_nino.shape[0]
@@ -174,25 +167,16 @@ if __name__ == '__main__':
                     'sep_pvt_FrechetGELV' : 'local/sep_pvt_fr/eval_968/eval_968.pth',
                     'sep_pvt_GumbelGELV' :'local/sep_pvt_gv/eval_1554/eval_1554.pth'}
 
-    onemonth = {'rmse' : 'local/1m_predict_sep_pvt_/eval_77/eval_77.pth',
-                'frechet' : 'local/1m_predict_sep_pvt_fr/eval_70/eval_70.pth',
-                'gumbel': 'local/1m_predict_sep_pvt_gv/eval_275/eval_275.pth'}
 
-    year = {'rmse' : 'local/12m_predict_sep_pvt_/eval_179/eval_179.pth',
-                'frechet' : 'local/12m_predict_sep_pvt_fr/eval_19/eval_19.pth',
-                'gumbel': 'local/12m_predict_sep_pvt_gv/eval_80/eval_80.pth'}
-
-    tmp = {'rmse': 'local/st_enc_mse/eval_194/eval_194.pth',
-            'frechet': 'local/st_enc_fr/eval_86/eval_86.pth',
-            'gumbel' : 'local/st_enc_gb/eval_196/eval_196.pth'}
-
-
+    tmp = {}
 
     mses, corrs = [], []
     
-    for i in year:
-        mse, corr = plotresult(year[i])
-        tmp[i] = corr
+    # for i in sep_pvt_fp:
+    #     mse, corr = plotresult(sep_pvt_fp[i])
+    #     tmp[i] = corr
+
+    mse, corr = plotresult('local/sptr/eval_396/eval_396.pth')
 
     # plt.plot([0.5]*23, marker='r--')
     for i in tmp:

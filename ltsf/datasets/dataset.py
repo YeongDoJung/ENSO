@@ -383,14 +383,14 @@ class oisst_tgt(D.Dataset):
 
         sst = pd.DataFrame(rearrange(sstData, 'a b c -> a (b c)'))
         sst = sst.fillna(0)
-        sst = rearrange(sst.to_numpy(), 'a (w h) -> a w h', w = 180, h = 360)
+        sst = rearrange(sst.to_numpy(dtype=np.float32), 'a (w h) -> a w h', w = 180, h = 360)
 
         self.tr_y = np.array(np.mean(np.mean(sst[:,80:90,190:258], axis=-1), axis=-1), dtype=np.float32)
 
         # sst = (sst - sst.min()) / (sst.max() - sst.min() + 1e-4)
         hc = pd.DataFrame(rearrange(hcData, 'a b c -> a (b c)'))
         hc = hc.fillna(0)
-        hc = rearrange(hc.to_numpy(), 'a (w h) -> a w h',w = 180, h = 360)
+        hc = rearrange(hc.to_numpy(dtype=np.float32), 'a (w h) -> a w h',w = 180, h = 360)
         # hc = (hc - hc.min()) / (hc.max() - hc.min() + 1e-4)
         new_hc = np.zeros_like(hc)
         # for i in range(len(hc)):
@@ -403,14 +403,22 @@ class oisst_tgt(D.Dataset):
         endoflist = min(sst.shape[0], hc.shape[0]) - self.input_month
 
         sst = rearrange(sst, 'a b c -> 1 a b c')
+        tgt_sst = self.make_n_monthdata(sst, self.target_month, endoflist - self.target_month - 1)
         sst = self.make_n_monthdata(sst, input_month, endoflist)
+        tgt_sst = rearrange(tgt_sst, 'a b c d -> 1 b a c d')
         sst = rearrange(sst, 'a b c d -> 1 b a c d')
 
         hc = rearrange(new_hc, 'a b c -> 1 a b c')
+        tgt_hc = self.make_n_monthdata(hc, self.target_month, endoflist - self.target_month - 1)
         hc = self.make_n_monthdata(hc, input_month, endoflist)
+        tgt_hc = rearrange(tgt_hc, 'a b c d -> 1 b a c d')
         hc = rearrange(hc, 'a b c d -> 1 b a c d')
 
+
         self.tr_x = np.append(sst, hc, axis = 0) # 2, 405, 3, 180, 360
+        self.tgt = np.append(tgt_sst, tgt_hc, axis = 0) # 2, 405, 23, 180, 360
+
+        self.tgt = np.array(rearrange(self.tgt, 'c b d h w -> b c w h d'), dtype=np.float32) # eol, 2, 360, 180, 23
         self.tr_x = np.array(rearrange(self.tr_x, 'c b d h w -> b c w h d'), dtype=np.float32) # eol, 2, 360, 180, 3
 
         if self.mode == 'train':
@@ -435,6 +443,6 @@ class oisst_tgt(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx+self.input_month:idx+self.input_month+self.target_month]
-        tgt = self.tr_x()
+        tgt = self.tgt[idx,:,:,:,:]
         # print('datasetout',np.sum(np.isnan(x)), np.sum(np.isnan(y)))
-        return x, y, idx
+        return x, y, tgt

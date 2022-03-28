@@ -1,4 +1,4 @@
-from turtle import forward
+from unittest.mock import patch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -243,34 +243,40 @@ class PyramidVisionTransformer(nn.Module):
         return x
 
 class temporaltransformer(nn.Module):
-    def __init__(self, img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages, target_month):
-        super().__init__(img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages)
+    def __init__(self, img_size, patch_size, in_chans, num_classes, embed_dims=[64, 128, 256, 512]):
+        super().__init__()
         self.dm = embed_dims[-1]
-        self.tm = target_month
-        self.pe = nn.parameter(1,self.tm,self.dm)
+        self.tm = num_classes
+        self.pe = nn.Parameter(torch.zeros(self.tm, 1, self.dm))
         self.dense = nn.Linear(self.dm, 1)
 
-        self.Temporal = nn.Transformer(d_model=self.dm, batch_first=True)
-        self.Spatial = PyramidVisionTransformer(img_size, patch_size, in_chans, num_classes, embed_dims, num_heads, mlp_ratios, qkv_bias, qk_scale, drop_rate, attn_drop_rate, drop_path_rate, norm_layer, depths, sr_ratios, num_stages)
+        self.Temporal = nn.Transformer(d_model=self.dm)
+        self.Spatial = PyramidVisionTransformer(img_size=img_size, patch_size=patch_size, in_chans=in_chans, num_classes=num_classes, embed_dims=embed_dims,
+                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
+                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
+                 depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4)
 
     def forward(self, x, tgt=None):
         b, c, w, h, t = x.shape
+        device = x.device
         tmp = []
         for i in range(t):
             tmp.append(self.Spatial(x[:,:,:,:,i]))
-        out = torch.cat(tmp)
+        out = torch.stack(tmp, dim=0)
         if tgt is not None:
             tmp=[]
             for j in range(self.tm):
                 tmp.append(self.Spatial(tgt[:,:,:,:,j]))
-            tgt = torch.cat(tmp)
+            tgt = torch.stack(tmp, dim=0)
         else:
-            tgt = torch.zeros_like([b, self.tm, ])
-        tgt += repeat(self.pe, '1 ... -> b ...', b = b)
+            tgt = torch.zeros((self.tm, b, self.dm)).to(device=device)
+        tgt += repeat(self.pe, 'tm () dm -> tm b dm', b = b)
 
         out = self.Temporal(src = out, tgt = tgt)
 
         out = self.dense(out)
+        out = torch.squeeze(out, axis=-1)
+        out = rearrange(out, 'a b -> b a')
 
         return out
 

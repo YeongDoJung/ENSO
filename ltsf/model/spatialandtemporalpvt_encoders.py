@@ -1,12 +1,16 @@
+from unittest.mock import patch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from functools import partial
+from .Transbase import *
+from torch.nn import LayerNorm
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from timm.models.registry import register_model
 from timm.models.vision_transformer import _cfg
 
+from einops import repeat, rearrange, reduce
 __all__ = [
     'pvt_tiny', 'pvt_small', 'pvt_medium', 'pvt_large'
 ]
@@ -237,17 +241,41 @@ class PyramidVisionTransformer(nn.Module):
 
     def forward(self, x):
         x = self.forward_features(x)
-        x = self.head(x)
 
         return x
 
+class temporaltransformer(nn.Module):
+    def __init__(self, img_size, patch_size, in_chans, num_classes, embed_dims=[64, 128, 256, 512]):
+        super().__init__()
+        self.dm = embed_dims[-1]
+        self.tm = num_classes
+        self.dense = nn.Linear(self.dm*3, self.tm)
 
-def _conv_filter(state_dict, patch_size=16):
-    """ convert patch embedding weight from manual patchify + linear proj to conv"""
-    out_dict = {}
-    for k, v in state_dict.items():
-        if 'patch_embed.proj.weight' in k:
-            v = v.reshape((v.shape[0], 3, patch_size, patch_size))
-        out_dict[k] = v
+        encoder_layer = TransformerEncoderLayer(d_model=self.dm, nhead=8, dim_feedforward=2048, dropout=0.1,
+                                                    activation=F.relu, layer_norm_eps=1e-5, batch_first=True, norm_first=False)
+        encoder_norm = LayerNorm(self.dm, eps=1e-5)
+        self.encoder = TransformerEncoder(encoder_layer, 6, encoder_norm)
+        
+        self.Spatial = PyramidVisionTransformer(img_size=img_size, patch_size=patch_size, in_chans=in_chans, num_classes=num_classes, embed_dims=embed_dims,
+                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
+                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
+                 depths=[3, 4, 6, 3], sr_ratios=[8, 4, 2, 1], num_stages=4)
 
-    return out_dict
+    def forward(self, x, tgt=None):
+        b, c, w, h, t = x.shape
+        device = x.device
+        tmp = []
+        for i in range(t):
+            tmp.append(self.Spatial(x[:,:,:,:,i]))
+        out = torch.stack(tmp, dim=0)
+
+        out = self.encoder(out)
+        out = rearrange(out, 'a b c -> b (a c)')
+        out = self.dense(out)
+
+        return out
+
+
+
+
+
