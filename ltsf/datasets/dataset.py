@@ -39,7 +39,7 @@ class basicdataset(D.Dataset):
     def __getitem__(self, idx):
         x = self.tr_x[idx] 
         y = self.tr_y[idx, :]
-        return x, y, idx
+        return x, y
 
 @register_model
 class dtom(D.Dataset):

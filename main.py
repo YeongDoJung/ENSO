@@ -74,7 +74,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
     trainloss = metric.AverageMeter()
     
-    for i, (src, label, tgt) in enumerate(trainloader):
+    for i, (src, label) in enumerate(trainloader):
         # print(label)
         # tgt_mask = util.make_std_mask(label).to(device=device)
         src = src.clone().detach().requires_grad_(True).to(device=device)
@@ -84,7 +84,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
 
         with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
-            output = model(src, tgt)
+            output = model(src)
             tl = criterion(output, label)
             # if torch.isnan(tl):
             #     print(src)
@@ -119,7 +119,7 @@ def valid(args, model, valset, criterion, writer):
     assemble_pred_nino = np.zeros((len(valset), args.data_targetmonth))
 
     with torch.no_grad() :
-        for i, (src, label, tgt) in enumerate(testloader):
+        for i, (src, label) in enumerate(testloader):
             src = src.clone().detach().requires_grad_(True).to(device=device)
             # tgt = torch.zeros_like(tgt).clone().detach().requires_grad_(True).to(device=device)
             label = label.clone().detach().requires_grad_(True).to(device=device)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("--name", type=str, default='res_enc_2')
     parser.add_argument('--data', type=int, default=0)
     parser.add_argument('--data_inputmonth', type=int, default=3)
-    parser.add_argument('--data_targetmonth', type=int, default=24)
+    parser.add_argument('--data_targetmonth', type=int, default=23)
 
     parser.add_argument('--model', type=str, default='')
     parser.add_argument('--dataset', type=str, default='')
@@ -224,7 +224,7 @@ if __name__ == "__main__":
     # Dataset for training
 
     
-    model = build.__dict__[args.model](num_classes = args.data_targetmonth).to(device=device)    
+    model = build.__dict__[args.model]().to(device=device)    
     '''    
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
