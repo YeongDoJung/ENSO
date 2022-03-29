@@ -212,6 +212,44 @@ class tdimdataset(D.Dataset):
         # , self.y_c[idx, :]
 
 @register_model
+class flattten(D.Dataset):
+    def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
+        sstData =  nc.Dataset(SSTFile)
+        sst = sstData[sstName][:, :, :, :]
+        sst = np.expand_dims(sst, axis = 0)
+
+        hc = sstData[hcName][:, :, :, :]
+        hc = np.expand_dims(hc, axis = 0)
+        tr_x = np.append(sst, hc, axis = 0)
+        del sst, hc
+
+        tr_x = rearrange(tr_x, 'l n c h w -> n c (l w h)') #(2, 35532, 3, 24, 72) -> (35532, 3, 2*72*24)
+        tdim, _, _, _ = tr_x.shape
+
+        sstData_label = nc.Dataset(SSTFile_label)
+        tr_y = sstData_label[labelName][:, :, 0, 0]
+
+        tr_y_c = np.zeros((tdim,12))
+        for i in range(tdim):
+            mod = i%12
+            tr_y_c[i,mod] = 1
+        self.y_c = np.array(tr_y_c)
+
+
+        self.tr_x = np.array(tr_x)
+        self.tr_y = np.array(tr_y[:, :])
+
+    def _batchsize(self):
+        return self.tr_x.shape
+
+    def __len__(self):
+        return len(self.tr_x)
+
+    def __getitem__(self, idx):
+        return self.tr_x[idx], self.tr_y[idx, :]
+        # , self.y_c[idx, :]
+
+@register_model
 class rddataset(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)

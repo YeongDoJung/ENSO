@@ -5,21 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from timm.models.registry import register_model
+from timm import models
+from ltsf.model.scinet import SCINet
 
-from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt, mn
-
-__all__ = ['Model_2D',
-'encoders',
-'Transformer',
-'Model_3D',
-'res_trf',
-'res_encs',
-'get_vit',
-'separated',
-'cnn_vit_wo_patch',
-'pyramid',
-'h21model',
-'sep_pvt']
+# from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt, mn
+from model import *
 
 @register_model
 def Model_2D():
@@ -134,3 +124,5 @@ def sattr_enc(num_classes):
 def memorynn():
     return mn.memoryNN(input_size = 2*24*72, hidden_size = 512, num_layers = 24, num_sample = 80)
 
+def scinet():
+    return SCINet(output_len=23, input_len=3, input_dim=72*24*2)
