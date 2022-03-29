@@ -1,4 +1,5 @@
 import sys
+from turtle import forward
 from einops import rearrange
 
 import numpy as np
@@ -181,6 +182,20 @@ class GGELV(nn.Module):
         self.r = 1.1
     def forward(self, pred, target):
         return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), self.r) * torch.pow(pred - target, 2)).mean()
+
+class L2EVL(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, u, v):
+
+
+class L1EVL(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, pred, gt):
+        sums = torch.sums(torch.abs(pred-gt))
 
 if __name__ == '__main__':
     a = torch.rand(430, 23)

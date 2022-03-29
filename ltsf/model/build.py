@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from timm.models.registry import register_model
 
-from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt
+from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt, mn
 
 __all__ = ['Model_2D',
 'encoders',
@@ -132,14 +132,5 @@ def sattr_enc(num_classes):
 
 @register_model
 def memorynn():
-    return memnn.MemNN(hidden_size=10, output_size=23, num_layers=2, memory_size=80, time_step=50)
+    return mn.memoryNN(input_size = 2*24*72, hidden_size = 512, num_layers = 24, num_sample = 80)
 
-@register_model
-class EVLmodel(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.model = encoders()
-
-        
-    def evdiscriminator(self, y):
-        pass
