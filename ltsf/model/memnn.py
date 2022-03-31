@@ -17,8 +17,7 @@ class TimeDistributed(nn.Module):
             return self.module(x)
 
         # Squash samples and timesteps into a single axis
-        # x_reshape = x.contiguous().view(-1, x.size(-1))  # (samples * timesteps, input_size)
-        x_reshape = rearrange(x.contiguous(), 'a ... b -> ')
+        x_reshape = x.contiguous().view(-1, x.size(-1))  # (samples * timesteps, input_size)
 
         y = self.module(x_reshape)
 

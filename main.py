@@ -85,6 +85,7 @@ def train(args, model, optimizer, trainset, criterion, writer):
         with torch.cuda.amp.autocast(enabled=True): 
             # tgt_mask = model.generate_square_subsequent_mask(label.size(-1)).to(device=device)
             output = model(src)
+            print(output.shape, label.shape)
             tl = criterion(output, label)
             # if torch.isnan(tl):
             #     print(src)
@@ -178,8 +179,8 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--name", type=str, default='res_enc_2')
     parser.add_argument('--data', type=int, default=0)
-    parser.add_argument('--data_inputmonth', type=int, default=3)
-    parser.add_argument('--data_targetmonth', type=int, default=23)
+    parser.add_argument('--data_inputmonth', type=int, default=4)
+    parser.add_argument('--data_targetmonth', type=int, default=12)
 
     parser.add_argument('--model', type=str, default='')
     parser.add_argument('--dataset', type=str, default='')
@@ -224,7 +225,7 @@ if __name__ == "__main__":
     # Dataset for training
 
     
-    model = build.__dict__[args.model]().to(device=device)    
+    model = build.__dict__[args.model](num_class = args.data_targetmonth).to(device=device)    
     '''    
     if args.debug:
         torch.autograd.set_detect_anomaly(True)

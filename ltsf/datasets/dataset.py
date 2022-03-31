@@ -1,4 +1,3 @@
-from timeit import repeat
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
@@ -212,7 +211,7 @@ class tdimdataset(D.Dataset):
         # , self.y_c[idx, :]
 
 @register_model
-class flattten(D.Dataset):
+class flatten(D.Dataset):
     def __init__(self, SSTFile, SSTFile_label, sstName, hcName, labelName):
         sstData =  nc.Dataset(SSTFile)
         sst = sstData[sstName][:, :, :, :]
@@ -223,30 +222,25 @@ class flattten(D.Dataset):
         tr_x = np.append(sst, hc, axis = 0)
         del sst, hc
 
-        tr_x = rearrange(tr_x, 'l n c h w -> n c (l w h)') #(2, 35532, 3, 24, 72) -> (35532, 3, 2*72*24)
-        tdim, _, _, _ = tr_x.shape
+        tr_x = rearrange(tr_x, 'l n c h w -> n c l w h') #(2, 35532, 3, 24, 72) -> (35532, 3, 2,72,24)
+        tr_x = tr_x[:,0,:] #(35532,2,72,24)
 
         sstData_label = nc.Dataset(SSTFile_label)
-        tr_y = sstData_label[labelName][:, :, 0, 0]
-
-        tr_y_c = np.zeros((tdim,12))
-        for i in range(tdim):
-            mod = i%12
-            tr_y_c[i,mod] = 1
-        self.y_c = np.array(tr_y_c)
-
+        tr_y = sstData_label[labelName][:, 0, 0, 0]
 
         self.tr_x = np.array(tr_x)
-        self.tr_y = np.array(tr_y[:, :])
+        self.tr_y = np.array(tr_y)
 
     def _batchsize(self):
         return self.tr_x.shape
 
     def __len__(self):
-        return len(self.tr_x)
+        return len(self.tr_x) - 128
 
     def __getitem__(self, idx):
-        return self.tr_x[idx], self.tr_y[idx, :]
+        k = 16
+        l = 24
+        return self.tr_x[idx:idx+k], self.tr_y[idx+k:idx+k+l]
         # , self.y_c[idx, :]
 
 @register_model

@@ -1,5 +1,4 @@
 import sys
-from turtle import forward
 from einops import rearrange
 
 import numpy as np
@@ -156,6 +155,9 @@ def FrechetGEVL(pred, target, a=13, s=1.7):
 def GumbelGEVL(pred, target, r=1.1):
     return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), r) * torch.pow(pred - target, 2)).mean()
 
+def Weibull(pred, target, k, ramda):
+    return (k/ramda)*(torch.pow((pred - target)/ramda, k-1))*torch.exp(-torch.pow(((pred - target)/ramda), k))
+
 # Dynamic Shift (Extreme Value Loss + MemNN)
 def ExtremeValueLoss(pred, target, proportion, r=1):
     # pred (batch_size, 3)      : left extreme, normal, right extreme 확률을 나타내는 3차원 신경망 출력
@@ -170,16 +172,18 @@ class FGELV(nn.Module):
         super().__init__()
         self.a = 13
         self.s = 1.7
+        print(f'LOSS parameter a = {self.a}, s = {self.s}')
 
     def forward(self, pred, target):
         temp = torch.abs(pred - target) / self.s + np.power(self.a / (1 + self.a), 1 / self.a)
         return ((temp ** -self.a) + (1 + self.a) * torch.log(temp)).mean()
 
-
 class GGELV(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.r = 1.1
+        print(f'LOSS parameter r = {self.r}')
+
     def forward(self, pred, target):
         return (torch.pow(1 - torch.exp(-torch.pow(pred - target, 2)), self.r) * torch.pow(pred - target, 2)).mean()
 
@@ -188,6 +192,7 @@ class L2EVL(nn.Module):
         super().__init__()
 
     def forward(self, u, v):
+        return None
 
 
 class L1EVL(nn.Module):
@@ -196,6 +201,7 @@ class L1EVL(nn.Module):
     
     def forward(self, pred, gt):
         sums = torch.sums(torch.abs(pred-gt))
+        return sums
 
 if __name__ == '__main__':
     a = torch.rand(430, 23)
