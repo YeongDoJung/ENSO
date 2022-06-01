@@ -1,19 +1,16 @@
-from distutils.command import build
-from ltsf.model import spatialandtemporalpvt_encoders
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from timm.models.registry import register_model
 from timm import models
-from ltsf.model.scinet import SCINet
 
-# from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt, mn
-from model import *
+from . import sep_decoder, tdcnn, mdl, rfb_trans, trdcnn, res_trans, res_encoder, vit, vit_wo_patch, separatedcnn_vit, separatedcnn_vit_wopatch, pvt, h21, separatedcnn_pvt, perceiver_pytorch, perceiver_io, memnn, oisst_enc, oisst_lstm, oisst_enc_edit, oisst_enc_sst, spatialandtemporalpvt, mn, scinet
+# from model import *
 
 @register_model
 def Model_2D():
-    return tdcnn.Model2D()
+    return tdcnn.Model2D(num_class)
 
 @register_model
 def encoders(in_channel=2, out_channel=16):
@@ -124,5 +121,5 @@ def sattr_enc(num_classes):
 def memorynn():
     return mn.memoryNN(input_size = 2*24*72, hidden_size = 512, num_layers = 24, num_sample = 80)
 
-def scinet():
-    return SCINet(output_len=23, input_len=3, input_dim=72*24*2)
+def scn():
+    return _scn()
